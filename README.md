@@ -10,7 +10,7 @@ Uses the Binary MoIP REST API v1.3.0 ([API docs](https://help.snapone.com/moip-i
 
 ## Why this exists
 
-The existing community integration ([gjbadros/hass-binarymoip](https://github.com/gjbadros/hass-binarymoip)) is a proof of concept and doesn't cover the full API. This integration is being built fresh, walking `group_rx` for proper zone naming and supporting volume, source selection, mute, and (eventually) serial passthrough for TV control.
+The existing community integration ([gjbadros/hass-binarymoip](https://github.com/gjbadros/hass-binarymoip)) is a proof of concept and doesn't cover the full API. This integration is being built fresh, walking `group_rx` for proper zone naming and supporting volume, source selection, and mute, with real-time updates over the change-event websocket.
 
 ## Hardware tested against
 
