@@ -13,6 +13,7 @@ from homeassistant.config_entries import (
     OptionsFlow,
 )
 from homeassistant.core import callback
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import BinaryMoIPAuthError, BinaryMoIPClient, BinaryMoIPConnectionError
 from .const import (
@@ -51,8 +52,8 @@ class BinaryMoIPConfigFlow(ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            # TODO: validate the connection by authenticating against the
-            # controller, then set a unique_id from the controller serial.
+            await self.async_set_unique_id(user_input[CONF_HOST])
+            self._abort_if_unique_id_configured()
             try:
                 await self._async_validate(user_input)
             except BinaryMoIPConnectionError:
@@ -72,8 +73,23 @@ class BinaryMoIPConfigFlow(ConfigFlow, domain=DOMAIN):
         )
 
     async def _async_validate(self, user_input: dict[str, Any]) -> None:
-        """Validate credentials against the controller. (Skeleton.)"""
-        raise NotImplementedError
+        """Authenticate against the controller to validate host + credentials.
+
+        Raises BinaryMoIPConnectionError / BinaryMoIPAuthError on failure, which
+        the caller maps to form errors.
+        """
+        session = async_get_clientsession(
+            self.hass, verify_ssl=user_input.get(CONF_VERIFY_SSL, DEFAULT_VERIFY_SSL)
+        )
+        client = BinaryMoIPClient(
+            session,
+            user_input[CONF_HOST],
+            port=user_input.get(CONF_PORT, DEFAULT_PORT),
+            username=user_input[CONF_USERNAME],
+            password=user_input[CONF_PASSWORD],
+            verify_ssl=user_input.get(CONF_VERIFY_SSL, DEFAULT_VERIFY_SSL),
+        )
+        await client.authenticate()
 
     @staticmethod
     @callback
