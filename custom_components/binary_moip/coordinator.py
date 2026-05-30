@@ -8,7 +8,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .api import BinaryMoIPAuthError, BinaryMoIPClient, BinaryMoIPError, MoIPZone
+from .api import BinaryMoIPAuthError, BinaryMoIPClient, BinaryMoIPError, MoIPTopology
 from .const import DEFAULT_SCAN_INTERVAL, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
@@ -17,11 +17,12 @@ _LOGGER = logging.getLogger(__name__)
 type BinaryMoIPConfigEntry = ConfigEntry[BinaryMoIPDataUpdateCoordinator]
 
 
-class BinaryMoIPDataUpdateCoordinator(DataUpdateCoordinator[dict[str, MoIPZone]]):
-    """Poll the MoIP controller and cache zone state for entities.
+class BinaryMoIPDataUpdateCoordinator(DataUpdateCoordinator[MoIPTopology]):
+    """Poll the MoIP controller and cache topology/state for entities.
 
-    Data shape: ``{group_id: MoIPZone}``. A later stage will layer a WebSocket
-    subscription on top of this polling baseline.
+    Data is a :class:`MoIPTopology` (units, zones keyed by group_rx id, sources
+    keyed by group_tx id). A later stage will layer a WebSocket subscription on
+    top of this polling baseline.
     """
 
     config_entry: BinaryMoIPConfigEntry
@@ -42,14 +43,12 @@ class BinaryMoIPDataUpdateCoordinator(DataUpdateCoordinator[dict[str, MoIPZone]]
         )
         self.client = client
 
-    async def _async_update_data(self) -> dict[str, MoIPZone]:
-        """Fetch the current zone topology and state from the controller."""
+    async def _async_update_data(self) -> MoIPTopology:
+        """Fetch the current topology and zone/source state from the controller."""
         try:
-            zones = await self.client.async_get_zones()
+            return await self.client.async_discover()
         except BinaryMoIPAuthError as err:
             # Trigger reauth flow via ConfigEntryAuthFailed in a later stage.
             raise UpdateFailed(f"Authentication error: {err}") from err
         except BinaryMoIPError as err:
             raise UpdateFailed(f"Error communicating with MoIP controller: {err}") from err
-
-        return {zone.group_id: zone for zone in zones}

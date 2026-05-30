@@ -1,0 +1,1685 @@
+﻿{
+    "units":  {
+                  "1077":  {
+                               "associations":  {
+                                                    "audio":  {
+                                                                  "rx":  [
+                                                                             1078,
+                                                                             1080,
+                                                                             1082
+                                                                         ],
+                                                                  "tx":  [
+                                                                             1090,
+                                                                             1092
+                                                                         ]
+                                                              },
+                                                    "group":  {
+                                                                  "rx":  [
+                                                                             1079,
+                                                                             1081,
+                                                                             1083
+                                                                         ],
+                                                                  "tx":  [
+                                                                             1091,
+                                                                             1093
+                                                                         ]
+                                                              },
+                                                    "ir":  {
+                                                               "rx":  [
+
+                                                                      ],
+                                                               "tx":  [
+
+                                                                      ]
+                                                           },
+                                                    "serial":  {
+                                                                   "rx":  [
+
+                                                                          ],
+                                                                   "tx":  [
+
+                                                                          ]
+                                                               },
+                                                    "usb":  {
+                                                                "rx":  [
+
+                                                                       ],
+                                                                "tx":  [
+
+                                                                       ]
+                                                            },
+                                                    "video":  {
+                                                                  "rx":  [
+
+                                                                         ],
+                                                                  "tx":  [
+
+                                                                         ]
+                                                              }
+                                                },
+                               "id":  1077,
+                               "settings":  {
+                                                "disabled":  false,
+                                                "ir_on_tx":  false,
+                                                "led_brightness":  1.0,
+                                                "name":  "Casita 3 Zone Amp",
+                                                "serial_on_tx":  false,
+                                                "skip_upgrade":  false,
+                                                "supported_ir_on_tx":  false,
+                                                "supported_led_brightness":  true,
+                                                "supported_serial_on_tx":  false,
+                                                "supported_usb_on_tx":  false,
+                                                "supported_zoneconfig":  {
+                                                                             "bridge_aligned":  true,
+                                                                             "channel_count":  6,
+                                                                             "zone_count":  3,
+                                                                             "zones":  [
+                                                                                           "5p1",
+                                                                                           "2p0",
+                                                                                           "2p1",
+                                                                                           "3p0",
+                                                                                           "3p1",
+                                                                                           "5p1sub",
+                                                                                           "2p1sub",
+                                                                                           "3p1sub",
+                                                                                           "1p0",
+                                                                                           "1p1"
+                                                                                       ]
+                                                                         },
+                                                "usb_on_tx":  false,
+                                                "zoneconfig":  [
+                                                                   "2p0",
+                                                                   "2p0",
+                                                                   "2p0"
+                                                               ]
+                                            },
+                               "status":  {
+                                              "ip":  "169.254.54.41",
+                                              "mac":  "D46A91282935",
+                                              "model":  "EA-MOIP-AMP-6D-50",
+                                              "power_source":  "dc",
+                                              "unit_state":  "operating",
+                                              "upgrade_state":  {
+                                                                    "percent":  0,
+                                                                    "stage":  "idle"
+                                                                },
+                                              "version":  "0.1.5.1324"
+                                          }
+                           },
+                  "1146":  {
+                               "associations":  {
+                                                    "audio":  {
+                                                                  "rx":  [
+                                                                             1147
+                                                                         ],
+                                                                  "tx":  [
+
+                                                                         ]
+                                                              },
+                                                    "group":  {
+                                                                  "rx":  [
+                                                                             1151
+                                                                         ],
+                                                                  "tx":  [
+
+                                                                         ]
+                                                              },
+                                                    "ir":  {
+                                                               "rx":  [
+                                                                          1149
+                                                                      ],
+                                                               "tx":  [
+
+                                                                      ]
+                                                           },
+                                                    "serial":  {
+                                                                   "rx":  [
+                                                                              1150
+                                                                          ],
+                                                                   "tx":  [
+
+                                                                          ]
+                                                               },
+                                                    "usb":  {
+                                                                "rx":  [
+
+                                                                       ],
+                                                                "tx":  [
+
+                                                                       ]
+                                                            },
+                                                    "video":  {
+                                                                  "rx":  [
+                                                                             1148
+                                                                         ],
+                                                                  "tx":  [
+
+                                                                         ]
+                                                              }
+                                                },
+                               "id":  1146,
+                               "settings":  {
+                                                "disabled":  false,
+                                                "ir_on_tx":  false,
+                                                "led_brightness":  1.0,
+                                                "name":  "Outdoor Seating RX",
+                                                "serial_on_tx":  false,
+                                                "skip_upgrade":  false,
+                                                "supported_ir_on_tx":  false,
+                                                "supported_led_brightness":  false,
+                                                "supported_serial_on_tx":  false,
+                                                "supported_usb_on_tx":  false,
+                                                "supported_zoneconfig":  {
+                                                                             "bridge_aligned":  false,
+                                                                             "channel_count":  0,
+                                                                             "zone_count":  1,
+                                                                             "zones":  [
+                                                                                           "fixed"
+                                                                                       ]
+                                                                         },
+                                                "usb_on_tx":  false,
+                                                "zoneconfig":  [
+                                                                   "fixed"
+                                                               ]
+                                            },
+                               "status":  {
+                                              "ip":  "0.0.0.0",
+                                              "mac":  "D46A9127F232",
+                                              "model":  "B-900-MOIP-4K-RX",
+                                              "power_source":  "unknown",
+                                              "unit_state":  "unconnected",
+                                              "upgrade_state":  {
+                                                                    "percent":  0,
+                                                                    "stage":  "idle"
+                                                                },
+                                              "version":  ""
+                                          }
+                           },
+                  "1058":  {
+                               "associations":  {
+                                                    "audio":  {
+                                                                  "rx":  [
+                                                                             1059,
+                                                                             1061,
+                                                                             1063,
+                                                                             1065,
+                                                                             1067,
+                                                                             1069
+                                                                         ],
+                                                                  "tx":  [
+                                                                             1071,
+                                                                             1073,
+                                                                             1075
+                                                                         ]
+                                                              },
+                                                    "group":  {
+                                                                  "rx":  [
+                                                                             1060,
+                                                                             1062,
+                                                                             1064,
+                                                                             1066,
+                                                                             1068,
+                                                                             1070
+                                                                         ],
+                                                                  "tx":  [
+                                                                             1072,
+                                                                             1074,
+                                                                             1076
+                                                                         ]
+                                                              },
+                                                    "ir":  {
+                                                               "rx":  [
+
+                                                                      ],
+                                                               "tx":  [
+
+                                                                      ]
+                                                           },
+                                                    "serial":  {
+                                                                   "rx":  [
+
+                                                                          ],
+                                                                   "tx":  [
+
+                                                                          ]
+                                                               },
+                                                    "usb":  {
+                                                                "rx":  [
+
+                                                                       ],
+                                                                "tx":  [
+
+                                                                       ]
+                                                            },
+                                                    "video":  {
+                                                                  "rx":  [
+
+                                                                         ],
+                                                                  "tx":  [
+
+                                                                         ]
+                                                              }
+                                                },
+                               "id":  1058,
+                               "settings":  {
+                                                "disabled":  false,
+                                                "ir_on_tx":  false,
+                                                "led_brightness":  1.0,
+                                                "name":  "Casita 6 Zone Amp",
+                                                "serial_on_tx":  false,
+                                                "skip_upgrade":  false,
+                                                "supported_ir_on_tx":  false,
+                                                "supported_led_brightness":  true,
+                                                "supported_serial_on_tx":  false,
+                                                "supported_usb_on_tx":  false,
+                                                "supported_zoneconfig":  {
+                                                                             "bridge_aligned":  true,
+                                                                             "channel_count":  12,
+                                                                             "zone_count":  6,
+                                                                             "zones":  [
+                                                                                           "5p1",
+                                                                                           "2p0",
+                                                                                           "2p1",
+                                                                                           "3p0",
+                                                                                           "3p1",
+                                                                                           "5p1sub",
+                                                                                           "2p1sub",
+                                                                                           "3p1sub",
+                                                                                           "1p0",
+                                                                                           "1p1",
+                                                                                           "bridge2p0",
+                                                                                           "bridge2p1",
+                                                                                           "bridge1p0",
+                                                                                           "bridge1p1",
+                                                                                           "5p1bsub",
+                                                                                           "2p1bsub",
+                                                                                           "3p1bsub"
+                                                                                       ]
+                                                                         },
+                                                "usb_on_tx":  false,
+                                                "zoneconfig":  [
+                                                                   "2p0",
+                                                                   "2p0",
+                                                                   "2p0",
+                                                                   "2p0",
+                                                                   "2p0",
+                                                                   "2p0"
+                                                               ]
+                                            },
+                               "status":  {
+                                              "ip":  "169.254.242.23",
+                                              "mac":  "D46A912817F1",
+                                              "model":  "EA-MOIP-AMP-12D-100",
+                                              "power_source":  "ac",
+                                              "unit_state":  "operating",
+                                              "upgrade_state":  {
+                                                                    "percent":  0,
+                                                                    "stage":  "idle"
+                                                                },
+                                              "version":  "0.1.5.1324"
+                                          }
+                           },
+                  "1096":  {
+                               "associations":  {
+                                                    "audio":  {
+                                                                  "rx":  [
+                                                                             1097,
+                                                                             1099,
+                                                                             1101
+                                                                         ],
+                                                                  "tx":  [
+                                                                             1109,
+                                                                             1111
+                                                                         ]
+                                                              },
+                                                    "group":  {
+                                                                  "rx":  [
+                                                                             1098,
+                                                                             1100,
+                                                                             1102
+                                                                         ],
+                                                                  "tx":  [
+                                                                             1110,
+                                                                             1112
+                                                                         ]
+                                                              },
+                                                    "ir":  {
+                                                               "rx":  [
+
+                                                                      ],
+                                                               "tx":  [
+
+                                                                      ]
+                                                           },
+                                                    "serial":  {
+                                                                   "rx":  [
+
+                                                                          ],
+                                                                   "tx":  [
+
+                                                                          ]
+                                                               },
+                                                    "usb":  {
+                                                                "rx":  [
+
+                                                                       ],
+                                                                "tx":  [
+
+                                                                       ]
+                                                            },
+                                                    "video":  {
+                                                                  "rx":  [
+
+                                                                         ],
+                                                                  "tx":  [
+
+                                                                         ]
+                                                              }
+                                                },
+                               "id":  1096,
+                               "settings":  {
+                                                "disabled":  false,
+                                                "ir_on_tx":  false,
+                                                "led_brightness":  1.0,
+                                                "name":  "Poolhouse 3 Zone Amp",
+                                                "serial_on_tx":  false,
+                                                "skip_upgrade":  false,
+                                                "supported_ir_on_tx":  false,
+                                                "supported_led_brightness":  true,
+                                                "supported_serial_on_tx":  false,
+                                                "supported_usb_on_tx":  false,
+                                                "supported_zoneconfig":  {
+                                                                             "bridge_aligned":  true,
+                                                                             "channel_count":  6,
+                                                                             "zone_count":  3,
+                                                                             "zones":  [
+                                                                                           "5p1",
+                                                                                           "2p0",
+                                                                                           "2p1",
+                                                                                           "3p0",
+                                                                                           "3p1",
+                                                                                           "5p1sub",
+                                                                                           "2p1sub",
+                                                                                           "3p1sub",
+                                                                                           "1p0",
+                                                                                           "1p1"
+                                                                                       ]
+                                                                         },
+                                                "usb_on_tx":  false,
+                                                "zoneconfig":  [
+                                                                   "2p0",
+                                                                   "1p0",
+                                                                   "2p0"
+                                                               ]
+                                            },
+                               "status":  {
+                                              "ip":  "169.254.196.39",
+                                              "mac":  "D46A912827C3",
+                                              "model":  "EA-MOIP-AMP-6D-50",
+                                              "power_source":  "dc",
+                                              "unit_state":  "operating",
+                                              "upgrade_state":  {
+                                                                    "percent":  0,
+                                                                    "stage":  "idle"
+                                                                },
+                                              "version":  "0.1.5.1324"
+                                          }
+                           },
+                  "1022":  {
+                               "associations":  {
+                                                    "audio":  {
+                                                                  "rx":  [
+                                                                             1023,
+                                                                             1025,
+                                                                             1027,
+                                                                             1029,
+                                                                             1031,
+                                                                             1033
+                                                                         ],
+                                                                  "tx":  [
+                                                                             1035,
+                                                                             1037,
+                                                                             1039
+                                                                         ]
+                                                              },
+                                                    "group":  {
+                                                                  "rx":  [
+                                                                             1024,
+                                                                             1026,
+                                                                             1028,
+                                                                             1030,
+                                                                             1032,
+                                                                             1034
+                                                                         ],
+                                                                  "tx":  [
+                                                                             1036,
+                                                                             1038,
+                                                                             1040
+                                                                         ]
+                                                              },
+                                                    "ir":  {
+                                                               "rx":  [
+
+                                                                      ],
+                                                               "tx":  [
+
+                                                                      ]
+                                                           },
+                                                    "serial":  {
+                                                                   "rx":  [
+
+                                                                          ],
+                                                                   "tx":  [
+
+                                                                          ]
+                                                               },
+                                                    "usb":  {
+                                                                "rx":  [
+
+                                                                       ],
+                                                                "tx":  [
+
+                                                                       ]
+                                                            },
+                                                    "video":  {
+                                                                  "rx":  [
+
+                                                                         ],
+                                                                  "tx":  [
+
+                                                                         ]
+                                                              }
+                                                },
+                               "id":  1022,
+                               "settings":  {
+                                                "disabled":  false,
+                                                "ir_on_tx":  false,
+                                                "led_brightness":  1.0,
+                                                "name":  "Main 6 Zone Amp",
+                                                "serial_on_tx":  false,
+                                                "skip_upgrade":  false,
+                                                "supported_ir_on_tx":  false,
+                                                "supported_led_brightness":  true,
+                                                "supported_serial_on_tx":  false,
+                                                "supported_usb_on_tx":  false,
+                                                "supported_zoneconfig":  {
+                                                                             "bridge_aligned":  true,
+                                                                             "channel_count":  12,
+                                                                             "zone_count":  6,
+                                                                             "zones":  [
+                                                                                           "5p1",
+                                                                                           "2p0",
+                                                                                           "2p1",
+                                                                                           "3p0",
+                                                                                           "3p1",
+                                                                                           "5p1sub",
+                                                                                           "2p1sub",
+                                                                                           "3p1sub",
+                                                                                           "1p0",
+                                                                                           "1p1",
+                                                                                           "bridge2p0",
+                                                                                           "bridge2p1",
+                                                                                           "bridge1p0",
+                                                                                           "bridge1p1",
+                                                                                           "5p1bsub",
+                                                                                           "2p1bsub",
+                                                                                           "3p1bsub"
+                                                                                       ]
+                                                                         },
+                                                "usb_on_tx":  false,
+                                                "zoneconfig":  [
+                                                                   "2p0",
+                                                                   "2p0",
+                                                                   "2p0",
+                                                                   "2p0",
+                                                                   "2p0",
+                                                                   "2p0"
+                                                               ]
+                                            },
+                               "status":  {
+                                              "ip":  "169.254.244.21",
+                                              "mac":  "D46A912815F3",
+                                              "model":  "EA-MOIP-AMP-12D-100",
+                                              "power_source":  "ac",
+                                              "unit_state":  "operating",
+                                              "upgrade_state":  {
+                                                                    "percent":  0,
+                                                                    "stage":  "idle"
+                                                                },
+                                              "version":  "0.1.5.1324"
+                                          }
+                           },
+                  "1134":  {
+                               "associations":  {
+                                                    "audio":  {
+                                                                  "rx":  [
+
+                                                                         ],
+                                                                  "tx":  [
+                                                                             1135
+                                                                         ]
+                                                              },
+                                                    "group":  {
+                                                                  "rx":  [
+
+                                                                         ],
+                                                                  "tx":  [
+                                                                             1139
+                                                                         ]
+                                                              },
+                                                    "ir":  {
+                                                               "rx":  [
+
+                                                                      ],
+                                                               "tx":  [
+                                                                          1137
+                                                                      ]
+                                                           },
+                                                    "serial":  {
+                                                                   "rx":  [
+
+                                                                          ],
+                                                                   "tx":  [
+                                                                              1138
+                                                                          ]
+                                                               },
+                                                    "usb":  {
+                                                                "rx":  [
+
+                                                                       ],
+                                                                "tx":  [
+
+                                                                       ]
+                                                            },
+                                                    "video":  {
+                                                                  "rx":  [
+
+                                                                         ],
+                                                                  "tx":  [
+                                                                             1136
+                                                                         ]
+                                                              }
+                                                },
+                               "id":  1134,
+                               "settings":  {
+                                                "disabled":  false,
+                                                "ir_on_tx":  false,
+                                                "led_brightness":  1.0,
+                                                "name":  "Gameroom AppleTV TX",
+                                                "serial_on_tx":  false,
+                                                "skip_upgrade":  false,
+                                                "supported_ir_on_tx":  false,
+                                                "supported_led_brightness":  false,
+                                                "supported_serial_on_tx":  false,
+                                                "supported_usb_on_tx":  false,
+                                                "supported_zoneconfig":  {
+                                                                             "bridge_aligned":  false,
+                                                                             "channel_count":  0,
+                                                                             "zone_count":  1,
+                                                                             "zones":  [
+                                                                                           "fixed"
+                                                                                       ]
+                                                                         },
+                                                "usb_on_tx":  false,
+                                                "zoneconfig":  [
+                                                                   "fixed"
+                                                               ]
+                                            },
+                               "status":  {
+                                              "ip":  "169.254.7.66",
+                                              "mac":  "D46A9127D860",
+                                              "model":  "B-900-MOIP-4K-TX",
+                                              "power_source":  "unknown",
+                                              "unit_state":  "operating",
+                                              "upgrade_state":  {
+                                                                    "percent":  0,
+                                                                    "stage":  "idle"
+                                                                },
+                                              "version":  "v1.6.5"
+                                          }
+                           },
+                  "1140":  {
+                               "associations":  {
+                                                    "audio":  {
+                                                                  "rx":  [
+                                                                             1141
+                                                                         ],
+                                                                  "tx":  [
+
+                                                                         ]
+                                                              },
+                                                    "group":  {
+                                                                  "rx":  [
+                                                                             1145
+                                                                         ],
+                                                                  "tx":  [
+
+                                                                         ]
+                                                              },
+                                                    "ir":  {
+                                                               "rx":  [
+                                                                          1143
+                                                                      ],
+                                                               "tx":  [
+
+                                                                      ]
+                                                           },
+                                                    "serial":  {
+                                                                   "rx":  [
+                                                                              1144
+                                                                          ],
+                                                                   "tx":  [
+
+                                                                          ]
+                                                               },
+                                                    "usb":  {
+                                                                "rx":  [
+
+                                                                       ],
+                                                                "tx":  [
+
+                                                                       ]
+                                                            },
+                                                    "video":  {
+                                                                  "rx":  [
+                                                                             1142
+                                                                         ],
+                                                                  "tx":  [
+
+                                                                         ]
+                                                              }
+                                                },
+                               "id":  1140,
+                               "settings":  {
+                                                "disabled":  false,
+                                                "ir_on_tx":  false,
+                                                "led_brightness":  1.0,
+                                                "name":  "Outdoor Kitchen RX",
+                                                "serial_on_tx":  false,
+                                                "skip_upgrade":  false,
+                                                "supported_ir_on_tx":  false,
+                                                "supported_led_brightness":  false,
+                                                "supported_serial_on_tx":  false,
+                                                "supported_usb_on_tx":  false,
+                                                "supported_zoneconfig":  {
+                                                                             "bridge_aligned":  false,
+                                                                             "channel_count":  0,
+                                                                             "zone_count":  1,
+                                                                             "zones":  [
+                                                                                           "fixed"
+                                                                                       ]
+                                                                         },
+                                                "usb_on_tx":  false,
+                                                "zoneconfig":  [
+                                                                   "fixed"
+                                                               ]
+                                            },
+                               "status":  {
+                                              "ip":  "169.254.7.60",
+                                              "mac":  "D46A9127F24A",
+                                              "model":  "B-900-MOIP-4K-RX",
+                                              "power_source":  "unknown",
+                                              "unit_state":  "operating",
+                                              "upgrade_state":  {
+                                                                    "percent":  0,
+                                                                    "stage":  "idle"
+                                                                },
+                                              "version":  "v1.6.5"
+                                          }
+                           },
+                  "1115":  {
+                               "associations":  {
+                                                    "audio":  {
+                                                                  "rx":  [
+                                                                             1116
+                                                                         ],
+                                                                  "tx":  [
+                                                                             1128,
+                                                                             1130,
+                                                                             1132
+                                                                         ]
+                                                              },
+                                                    "group":  {
+                                                                  "rx":  [
+                                                                             1117
+                                                                         ],
+                                                                  "tx":  [
+                                                                             1129,
+                                                                             1131,
+                                                                             1133
+                                                                         ]
+                                                              },
+                                                    "ir":  {
+                                                               "rx":  [
+
+                                                                      ],
+                                                               "tx":  [
+
+                                                                      ]
+                                                           },
+                                                    "serial":  {
+                                                                   "rx":  [
+
+                                                                          ],
+                                                                   "tx":  [
+
+                                                                          ]
+                                                               },
+                                                    "usb":  {
+                                                                "rx":  [
+
+                                                                       ],
+                                                                "tx":  [
+
+                                                                       ]
+                                                            },
+                                                    "video":  {
+                                                                  "rx":  [
+
+                                                                         ],
+                                                                  "tx":  [
+
+                                                                         ]
+                                                              }
+                                                },
+                               "id":  1115,
+                               "settings":  {
+                                                "disabled":  false,
+                                                "ir_on_tx":  false,
+                                                "led_brightness":  1.0,
+                                                "name":  "Gameroom 6 Zone Amp",
+                                                "serial_on_tx":  false,
+                                                "skip_upgrade":  false,
+                                                "supported_ir_on_tx":  false,
+                                                "supported_led_brightness":  true,
+                                                "supported_serial_on_tx":  false,
+                                                "supported_usb_on_tx":  false,
+                                                "supported_zoneconfig":  {
+                                                                             "bridge_aligned":  true,
+                                                                             "channel_count":  12,
+                                                                             "zone_count":  6,
+                                                                             "zones":  [
+                                                                                           "5p1",
+                                                                                           "2p0",
+                                                                                           "2p1",
+                                                                                           "3p0",
+                                                                                           "3p1",
+                                                                                           "5p1sub",
+                                                                                           "2p1sub",
+                                                                                           "3p1sub",
+                                                                                           "1p0",
+                                                                                           "1p1",
+                                                                                           "bridge2p0",
+                                                                                           "bridge2p1",
+                                                                                           "bridge1p0",
+                                                                                           "bridge1p1",
+                                                                                           "5p1bsub",
+                                                                                           "2p1bsub",
+                                                                                           "3p1bsub"
+                                                                                       ]
+                                                                         },
+                                                "usb_on_tx":  false,
+                                                "zoneconfig":  [
+                                                                   "2p0"
+                                                               ]
+                                            },
+                               "status":  {
+                                              "ip":  "169.254.59.21",
+                                              "mac":  "D46A9128153A",
+                                              "model":  "EA-MOIP-AMP-12D-100",
+                                              "power_source":  "ac",
+                                              "unit_state":  "operating",
+                                              "upgrade_state":  {
+                                                                    "percent":  0,
+                                                                    "stage":  "idle"
+                                                                },
+                                              "version":  "0.1.5.1324"
+                                          }
+                           },
+                  "1041":  {
+                               "associations":  {
+                                                    "audio":  {
+                                                                  "rx":  [
+
+                                                                         ],
+                                                                  "tx":  [
+                                                                             1042,
+                                                                             1044,
+                                                                             1046,
+                                                                             1048
+                                                                         ]
+                                                              },
+                                                    "group":  {
+                                                                  "rx":  [
+
+                                                                         ],
+                                                                  "tx":  [
+                                                                             1043,
+                                                                             1045,
+                                                                             1047,
+                                                                             1049
+                                                                         ]
+                                                              },
+                                                    "ir":  {
+                                                               "rx":  [
+
+                                                                      ],
+                                                               "tx":  [
+
+                                                                      ]
+                                                           },
+                                                    "serial":  {
+                                                                   "rx":  [
+
+                                                                          ],
+                                                                   "tx":  [
+
+                                                                          ]
+                                                               },
+                                                    "usb":  {
+                                                                "rx":  [
+
+                                                                       ],
+                                                                "tx":  [
+
+                                                                       ]
+                                                            },
+                                                    "video":  {
+                                                                  "rx":  [
+
+                                                                         ],
+                                                                  "tx":  [
+
+                                                                         ]
+                                                              }
+                                                },
+                               "id":  1041,
+                               "settings":  {
+                                                "disabled":  false,
+                                                "ir_on_tx":  false,
+                                                "led_brightness":  1.0,
+                                                "name":  "RYFF-000FFFA11BEB",
+                                                "serial_on_tx":  false,
+                                                "skip_upgrade":  true,
+                                                "supported_ir_on_tx":  false,
+                                                "supported_led_brightness":  false,
+                                                "supported_serial_on_tx":  false,
+                                                "supported_usb_on_tx":  false,
+                                                "supported_zoneconfig":  {
+                                                                             "bridge_aligned":  false,
+                                                                             "channel_count":  0,
+                                                                             "zone_count":  1,
+                                                                             "zones":  [
+                                                                                           "fixed"
+                                                                                       ]
+                                                                         },
+                                                "usb_on_tx":  false,
+                                                "zoneconfig":  [
+                                                                   "fixed"
+                                                               ]
+                                            },
+                               "status":  {
+                                              "ip":  "10.4.1.54",
+                                              "mac":  "000FFFA11BEB",
+                                              "model":  "Core3",
+                                              "power_source":  "unknown",
+                                              "unit_state":  "operating",
+                                              "upgrade_state":  {
+                                                                    "percent":  0,
+                                                                    "stage":  "idle"
+                                                                },
+                                              "version":  "v1.0.0"
+                                          }
+                           },
+                  "1000":  {
+                               "associations":  {
+                                                    "audio":  {
+                                                                  "rx":  [
+
+                                                                         ],
+                                                                  "tx":  [
+                                                                             1013,
+                                                                             1015
+                                                                         ]
+                                                              },
+                                                    "group":  {
+                                                                  "rx":  [
+
+                                                                         ],
+                                                                  "tx":  [
+                                                                             1014,
+                                                                             1016
+                                                                         ]
+                                                              },
+                                                    "ir":  {
+                                                               "rx":  [
+
+                                                                      ],
+                                                               "tx":  [
+
+                                                                      ]
+                                                           },
+                                                    "serial":  {
+                                                                   "rx":  [
+
+                                                                          ],
+                                                                   "tx":  [
+
+                                                                          ]
+                                                               },
+                                                    "usb":  {
+                                                                "rx":  [
+
+                                                                       ],
+                                                                "tx":  [
+
+                                                                       ]
+                                                            },
+                                                    "video":  {
+                                                                  "rx":  [
+
+                                                                         ],
+                                                                  "tx":  [
+
+                                                                         ]
+                                                              }
+                                                },
+                               "id":  1000,
+                               "settings":  {
+                                                "disabled":  false,
+                                                "ir_on_tx":  false,
+                                                "led_brightness":  1.0,
+                                                "name":  "Main 3 Zone Amp",
+                                                "serial_on_tx":  false,
+                                                "skip_upgrade":  false,
+                                                "supported_ir_on_tx":  false,
+                                                "supported_led_brightness":  true,
+                                                "supported_serial_on_tx":  false,
+                                                "supported_usb_on_tx":  false,
+                                                "supported_zoneconfig":  {
+                                                                             "bridge_aligned":  true,
+                                                                             "channel_count":  6,
+                                                                             "zone_count":  3,
+                                                                             "zones":  [
+                                                                                           "5p1",
+                                                                                           "2p0",
+                                                                                           "2p1",
+                                                                                           "3p0",
+                                                                                           "3p1",
+                                                                                           "5p1sub",
+                                                                                           "2p1sub",
+                                                                                           "3p1sub",
+                                                                                           "1p0",
+                                                                                           "1p1"
+                                                                                       ]
+                                                                         },
+                                                "usb_on_tx":  false,
+                                                "zoneconfig":  [
+
+                                                               ]
+                                            },
+                               "status":  {
+                                              "ip":  "169.254.27.38",
+                                              "mac":  "D46A9128261A",
+                                              "model":  "EA-MOIP-AMP-6D-50",
+                                              "power_source":  "dc",
+                                              "unit_state":  "operating",
+                                              "upgrade_state":  {
+                                                                    "percent":  0,
+                                                                    "stage":  "idle"
+                                                                },
+                                              "version":  "0.1.5.1324"
+                                          }
+                           },
+                  "1019":  {
+                               "associations":  {
+                                                    "audio":  {
+                                                                  "rx":  [
+
+                                                                         ],
+                                                                  "tx":  [
+                                                                             1020
+                                                                         ]
+                                                              },
+                                                    "group":  {
+                                                                  "rx":  [
+
+                                                                         ],
+                                                                  "tx":  [
+                                                                             1021
+                                                                         ]
+                                                              },
+                                                    "ir":  {
+                                                               "rx":  [
+
+                                                                      ],
+                                                               "tx":  [
+
+                                                                      ]
+                                                           },
+                                                    "serial":  {
+                                                                   "rx":  [
+
+                                                                          ],
+                                                                   "tx":  [
+
+                                                                          ]
+                                                               },
+                                                    "usb":  {
+                                                                "rx":  [
+
+                                                                       ],
+                                                                "tx":  [
+
+                                                                       ]
+                                                            },
+                                                    "video":  {
+                                                                  "rx":  [
+
+                                                                         ],
+                                                                  "tx":  [
+
+                                                                         ]
+                                                              }
+                                                },
+                               "id":  1019,
+                               "settings":  {
+                                                "disabled":  false,
+                                                "ir_on_tx":  false,
+                                                "led_brightness":  1.0,
+                                                "name":  "TX-D46A91273500",
+                                                "serial_on_tx":  false,
+                                                "skip_upgrade":  false,
+                                                "supported_ir_on_tx":  false,
+                                                "supported_led_brightness":  false,
+                                                "supported_serial_on_tx":  false,
+                                                "supported_usb_on_tx":  false,
+                                                "supported_zoneconfig":  {
+                                                                             "bridge_aligned":  false,
+                                                                             "channel_count":  0,
+                                                                             "zone_count":  1,
+                                                                             "zones":  [
+                                                                                           "fixed"
+                                                                                       ]
+                                                                         },
+                                                "usb_on_tx":  false,
+                                                "zoneconfig":  [
+                                                                   "fixed"
+                                                               ]
+                                            },
+                               "status":  {
+                                              "ip":  "169.254.1.53",
+                                              "mac":  "D46A91273500",
+                                              "model":  "B-900-MOIP-A-TX",
+                                              "power_source":  "unknown",
+                                              "unit_state":  "operating",
+                                              "upgrade_state":  {
+                                                                    "percent":  0,
+                                                                    "stage":  "idle"
+                                                                },
+                                              "version":  "0.4.2"
+                                          }
+                           }
+              },
+    "sources":  [
+                    {
+                        "GroupTxId":  1014,
+                        "SourceName":  "TX-D46A9128261A-1",
+                        "AudioTxId":  "1013",
+                        "AudioTxLabel":  "Digital Input",
+                        "ParentUnit":  "Main 3 Zone Amp",
+                        "ParentUnitId":  1000,
+                        "State":  "stopped",
+                        "InputType":  "toslink",
+                        "Enabled":  "True",
+                        "Index":  "10"
+                    },
+                    {
+                        "GroupTxId":  1016,
+                        "SourceName":  "TX-D46A9128261A-2",
+                        "AudioTxId":  "1015",
+                        "AudioTxLabel":  "Analog Input",
+                        "ParentUnit":  "Main 3 Zone Amp",
+                        "ParentUnitId":  1000,
+                        "State":  "streaming",
+                        "InputType":  "analog",
+                        "Enabled":  "True",
+                        "Index":  "2"
+                    },
+                    {
+                        "GroupTxId":  1021,
+                        "SourceName":  "TX-D46A91273500-Core3",
+                        "AudioTxId":  "1020",
+                        "AudioTxLabel":  "Audio Input",
+                        "ParentUnit":  "TX-D46A91273500",
+                        "ParentUnitId":  1019,
+                        "State":  "streaming",
+                        "InputType":  "analog",
+                        "Enabled":  "True",
+                        "Index":  "1"
+                    },
+                    {
+                        "GroupTxId":  1036,
+                        "SourceName":  "TX-D46A912815F3-1",
+                        "AudioTxId":  "1035",
+                        "AudioTxLabel":  "Digital Input",
+                        "ParentUnit":  "Main 6 Zone Amp",
+                        "ParentUnitId":  1022,
+                        "State":  "stopped",
+                        "InputType":  "toslink",
+                        "Enabled":  "True",
+                        "Index":  "3"
+                    },
+                    {
+                        "GroupTxId":  1038,
+                        "SourceName":  "TX-D46A912815F3-2",
+                        "AudioTxId":  "1037",
+                        "AudioTxLabel":  "Analog Input 1",
+                        "ParentUnit":  "Main 6 Zone Amp",
+                        "ParentUnitId":  1022,
+                        "State":  "streaming",
+                        "InputType":  "analog",
+                        "Enabled":  "True",
+                        "Index":  "4"
+                    },
+                    {
+                        "GroupTxId":  1040,
+                        "SourceName":  "TX-D46A912815F3-3",
+                        "AudioTxId":  "1039",
+                        "AudioTxLabel":  "Analog Input 2",
+                        "ParentUnit":  "Main 6 Zone Amp",
+                        "ParentUnitId":  1022,
+                        "State":  "streaming",
+                        "InputType":  "analog",
+                        "Enabled":  "True",
+                        "Index":  "5"
+                    },
+                    {
+                        "GroupTxId":  1043,
+                        "SourceName":  "TX-000FFFA11BEB",
+                        "AudioTxId":  "1042",
+                        "AudioTxLabel":  "Audio Input",
+                        "ParentUnit":  "RYFF-000FFFA11BEB",
+                        "ParentUnitId":  1041,
+                        "State":  "stopped",
+                        "InputType":  "",
+                        "Enabled":  "True",
+                        "Index":  "6"
+                    },
+                    {
+                        "GroupTxId":  1045,
+                        "SourceName":  "TX-000FFFA11BEB",
+                        "AudioTxId":  "1044",
+                        "AudioTxLabel":  "Audio Input",
+                        "ParentUnit":  "RYFF-000FFFA11BEB",
+                        "ParentUnitId":  1041,
+                        "State":  "stopped",
+                        "InputType":  "",
+                        "Enabled":  "True",
+                        "Index":  "7"
+                    },
+                    {
+                        "GroupTxId":  1047,
+                        "SourceName":  "TX-000FFFA11BEB",
+                        "AudioTxId":  "1046",
+                        "AudioTxLabel":  "Audio Input",
+                        "ParentUnit":  "RYFF-000FFFA11BEB",
+                        "ParentUnitId":  1041,
+                        "State":  "stopped",
+                        "InputType":  "",
+                        "Enabled":  "True",
+                        "Index":  "8"
+                    },
+                    {
+                        "GroupTxId":  1049,
+                        "SourceName":  "TX-000FFFA11BEB",
+                        "AudioTxId":  "1048",
+                        "AudioTxLabel":  "Audio Input",
+                        "ParentUnit":  "RYFF-000FFFA11BEB",
+                        "ParentUnitId":  1041,
+                        "State":  "stopped",
+                        "InputType":  "",
+                        "Enabled":  "True",
+                        "Index":  "9"
+                    },
+                    {
+                        "GroupTxId":  1072,
+                        "SourceName":  "TX-D46A912817F1-1",
+                        "AudioTxId":  "1071",
+                        "AudioTxLabel":  "Digital Input",
+                        "ParentUnit":  "Casita 6 Zone Amp",
+                        "ParentUnitId":  1058,
+                        "State":  "stopped",
+                        "InputType":  "toslink",
+                        "Enabled":  "True",
+                        "Index":  "11"
+                    },
+                    {
+                        "GroupTxId":  1074,
+                        "SourceName":  "TX-D46A912817F1-2",
+                        "AudioTxId":  "1073",
+                        "AudioTxLabel":  "Analog Input 1",
+                        "ParentUnit":  "Casita 6 Zone Amp",
+                        "ParentUnitId":  1058,
+                        "State":  "streaming",
+                        "InputType":  "analog",
+                        "Enabled":  "True",
+                        "Index":  "12"
+                    },
+                    {
+                        "GroupTxId":  1076,
+                        "SourceName":  "TX-D46A912817F1-3",
+                        "AudioTxId":  "1075",
+                        "AudioTxLabel":  "Analog Input 2",
+                        "ParentUnit":  "Casita 6 Zone Amp",
+                        "ParentUnitId":  1058,
+                        "State":  "streaming",
+                        "InputType":  "analog",
+                        "Enabled":  "True",
+                        "Index":  "13"
+                    },
+                    {
+                        "GroupTxId":  1091,
+                        "SourceName":  "TX-D46A91282935-1",
+                        "AudioTxId":  "1090",
+                        "AudioTxLabel":  "Digital Input",
+                        "ParentUnit":  "Casita 3 Zone Amp",
+                        "ParentUnitId":  1077,
+                        "State":  "stopped",
+                        "InputType":  "toslink",
+                        "Enabled":  "True",
+                        "Index":  "14"
+                    },
+                    {
+                        "GroupTxId":  1093,
+                        "SourceName":  "TX-D46A91282935-2",
+                        "AudioTxId":  "1092",
+                        "AudioTxLabel":  "Analog Input",
+                        "ParentUnit":  "Casita 3 Zone Amp",
+                        "ParentUnitId":  1077,
+                        "State":  "streaming",
+                        "InputType":  "analog",
+                        "Enabled":  "True",
+                        "Index":  "15"
+                    },
+                    {
+                        "GroupTxId":  1110,
+                        "SourceName":  "TX-D46A912827C3-1",
+                        "AudioTxId":  "1109",
+                        "AudioTxLabel":  "Digital Input",
+                        "ParentUnit":  "Poolhouse 3 Zone Amp",
+                        "ParentUnitId":  1096,
+                        "State":  "stopped",
+                        "InputType":  "toslink",
+                        "Enabled":  "True",
+                        "Index":  "16"
+                    },
+                    {
+                        "GroupTxId":  1112,
+                        "SourceName":  "TX-D46A912827C3-2",
+                        "AudioTxId":  "1111",
+                        "AudioTxLabel":  "Analog Input",
+                        "ParentUnit":  "Poolhouse 3 Zone Amp",
+                        "ParentUnitId":  1096,
+                        "State":  "streaming",
+                        "InputType":  "analog",
+                        "Enabled":  "True",
+                        "Index":  "17"
+                    },
+                    {
+                        "GroupTxId":  1129,
+                        "SourceName":  "TX-D46A9128153A-1",
+                        "AudioTxId":  "1128",
+                        "AudioTxLabel":  "Digital Input",
+                        "ParentUnit":  "Gameroom 6 Zone Amp",
+                        "ParentUnitId":  1115,
+                        "State":  "stopped",
+                        "InputType":  "toslink",
+                        "Enabled":  "True",
+                        "Index":  "18"
+                    },
+                    {
+                        "GroupTxId":  1131,
+                        "SourceName":  "TX-D46A9128153A-2",
+                        "AudioTxId":  "1130",
+                        "AudioTxLabel":  "Analog Input 1",
+                        "ParentUnit":  "Gameroom 6 Zone Amp",
+                        "ParentUnitId":  1115,
+                        "State":  "streaming",
+                        "InputType":  "analog",
+                        "Enabled":  "True",
+                        "Index":  "19"
+                    },
+                    {
+                        "GroupTxId":  1133,
+                        "SourceName":  "TX-D46A9128153A-3",
+                        "AudioTxId":  "1132",
+                        "AudioTxLabel":  "Analog Input 2",
+                        "ParentUnit":  "Gameroom 6 Zone Amp",
+                        "ParentUnitId":  1115,
+                        "State":  "streaming",
+                        "InputType":  "analog",
+                        "Enabled":  "True",
+                        "Index":  "20"
+                    },
+                    {
+                        "GroupTxId":  1139,
+                        "SourceName":  "TX-D46A9127D860",
+                        "AudioTxId":  "1135",
+                        "AudioTxLabel":  "Audio Input",
+                        "ParentUnit":  "Gameroom AppleTV TX",
+                        "ParentUnitId":  1134,
+                        "State":  "detecting",
+                        "InputType":  "hdmi",
+                        "Enabled":  "True",
+                        "Index":  "21"
+                    }
+                ],
+    "zones":  [
+                  {
+                      "GroupRxId":  1024,
+                      "ZoneName":  "Master Bedroom",
+                      "AudioRxId":  "1023",
+                      "AudioRxLabel":  "Audio Output 1",
+                      "ParentUnit":  "Main 6 Zone Amp",
+                      "ParentUnitId":  1022,
+                      "State":  "stopped",
+                      "Volume":  "20",
+                      "PairedTx":  "",
+                      "Index":  "1"
+                  },
+                  {
+                      "GroupRxId":  1026,
+                      "ZoneName":  "Master Bathroom",
+                      "AudioRxId":  "1025",
+                      "AudioRxLabel":  "Audio Output 2",
+                      "ParentUnit":  "Main 6 Zone Amp",
+                      "ParentUnitId":  1022,
+                      "State":  "stopped",
+                      "Volume":  "26",
+                      "PairedTx":  "",
+                      "Index":  "2"
+                  },
+                  {
+                      "GroupRxId":  1028,
+                      "ZoneName":  "Dining Room",
+                      "AudioRxId":  "1027",
+                      "AudioRxLabel":  "Audio Output 3",
+                      "ParentUnit":  "Main 6 Zone Amp",
+                      "ParentUnitId":  1022,
+                      "State":  "stopped",
+                      "Volume":  "70",
+                      "PairedTx":  "",
+                      "Index":  "3"
+                  },
+                  {
+                      "GroupRxId":  1030,
+                      "ZoneName":  "Back Sitting Room",
+                      "AudioRxId":  "1029",
+                      "AudioRxLabel":  "Audio Output 4",
+                      "ParentUnit":  "Main 6 Zone Amp",
+                      "ParentUnitId":  1022,
+                      "State":  "stopped",
+                      "Volume":  "25",
+                      "PairedTx":  "",
+                      "Index":  "4"
+                  },
+                  {
+                      "GroupRxId":  1032,
+                      "ZoneName":  "Kitchen",
+                      "AudioRxId":  "1031",
+                      "AudioRxLabel":  "Audio Output 5",
+                      "ParentUnit":  "Main 6 Zone Amp",
+                      "ParentUnitId":  1022,
+                      "State":  "stopped",
+                      "Volume":  "66",
+                      "PairedTx":  "",
+                      "Index":  "5"
+                  },
+                  {
+                      "GroupRxId":  1034,
+                      "ZoneName":  "Parlor",
+                      "AudioRxId":  "1033",
+                      "AudioRxLabel":  "Audio Output 6",
+                      "ParentUnit":  "Main 6 Zone Amp",
+                      "ParentUnitId":  1022,
+                      "State":  "stopped",
+                      "Volume":  "72",
+                      "PairedTx":  "",
+                      "Index":  "6"
+                  },
+                  {
+                      "GroupRxId":  1060,
+                      "ZoneName":  "Pool (Kitchen Side)",
+                      "AudioRxId":  "1059",
+                      "AudioRxLabel":  "Audio Output 1",
+                      "ParentUnit":  "Casita 6 Zone Amp",
+                      "ParentUnitId":  1058,
+                      "State":  "stopped",
+                      "Volume":  "74",
+                      "PairedTx":  "",
+                      "Index":  "7"
+                  },
+                  {
+                      "GroupRxId":  1062,
+                      "ZoneName":  "Outdoor Seating",
+                      "AudioRxId":  "1061",
+                      "AudioRxLabel":  "Audio Output 2",
+                      "ParentUnit":  "Casita 6 Zone Amp",
+                      "ParentUnitId":  1058,
+                      "State":  "stopped",
+                      "Volume":  "56",
+                      "PairedTx":  "",
+                      "Index":  "8"
+                  },
+                  {
+                      "GroupRxId":  1064,
+                      "ZoneName":  "Outdoor Kitchen 1",
+                      "AudioRxId":  "1063",
+                      "AudioRxLabel":  "Audio Output 3",
+                      "ParentUnit":  "Casita 6 Zone Amp",
+                      "ParentUnitId":  1058,
+                      "State":  "stopped",
+                      "Volume":  "56",
+                      "PairedTx":  "",
+                      "Index":  "9"
+                  },
+                  {
+                      "GroupRxId":  1066,
+                      "ZoneName":  "Outdoor Kitchen 2",
+                      "AudioRxId":  "1065",
+                      "AudioRxLabel":  "Audio Output 4",
+                      "ParentUnit":  "Casita 6 Zone Amp",
+                      "ParentUnitId":  1058,
+                      "State":  "stopped",
+                      "Volume":  "56",
+                      "PairedTx":  "",
+                      "Index":  "10"
+                  },
+                  {
+                      "GroupRxId":  1068,
+                      "ZoneName":  "Garage",
+                      "AudioRxId":  "1067",
+                      "AudioRxLabel":  "Audio Output 5",
+                      "ParentUnit":  "Casita 6 Zone Amp",
+                      "ParentUnitId":  1058,
+                      "State":  "stopped",
+                      "Volume":  "27",
+                      "PairedTx":  "",
+                      "Index":  "11"
+                  },
+                  {
+                      "GroupRxId":  1070,
+                      "ZoneName":  "Shop",
+                      "AudioRxId":  "1069",
+                      "AudioRxLabel":  "Audio Output 6",
+                      "ParentUnit":  "Casita 6 Zone Amp",
+                      "ParentUnitId":  1058,
+                      "State":  "stopped",
+                      "Volume":  "27",
+                      "PairedTx":  "",
+                      "Index":  "12"
+                  },
+                  {
+                      "GroupRxId":  1079,
+                      "ZoneName":  "Casita Kitchen",
+                      "AudioRxId":  "1078",
+                      "AudioRxLabel":  "Audio Output 1",
+                      "ParentUnit":  "Casita 3 Zone Amp",
+                      "ParentUnitId":  1077,
+                      "State":  "stopped",
+                      "Volume":  "19",
+                      "PairedTx":  "",
+                      "Index":  "13"
+                  },
+                  {
+                      "GroupRxId":  1081,
+                      "ZoneName":  "Sewing Room",
+                      "AudioRxId":  "1080",
+                      "AudioRxLabel":  "Audio Output 2",
+                      "ParentUnit":  "Casita 3 Zone Amp",
+                      "ParentUnitId":  1077,
+                      "State":  "stopped",
+                      "Volume":  "31",
+                      "PairedTx":  "",
+                      "Index":  "14"
+                  },
+                  {
+                      "GroupRxId":  1083,
+                      "ZoneName":  "Casita Back Porch",
+                      "AudioRxId":  "1082",
+                      "AudioRxLabel":  "Audio Output 3",
+                      "ParentUnit":  "Casita 3 Zone Amp",
+                      "ParentUnitId":  1077,
+                      "State":  "stopped",
+                      "Volume":  "41",
+                      "PairedTx":  "",
+                      "Index":  "15"
+                  },
+                  {
+                      "GroupRxId":  1098,
+                      "ZoneName":  "Workout",
+                      "AudioRxId":  "1097",
+                      "AudioRxLabel":  "Audio Output 1",
+                      "ParentUnit":  "Poolhouse 3 Zone Amp",
+                      "ParentUnitId":  1096,
+                      "State":  "stopped",
+                      "Volume":  "44",
+                      "PairedTx":  "",
+                      "Index":  "16"
+                  },
+                  {
+                      "GroupRxId":  1100,
+                      "ZoneName":  "Skip",
+                      "AudioRxId":  "1099",
+                      "AudioRxLabel":  "Audio Output 2",
+                      "ParentUnit":  "Poolhouse 3 Zone Amp",
+                      "ParentUnitId":  1096,
+                      "State":  "stopped",
+                      "Volume":  "25",
+                      "PairedTx":  "",
+                      "Index":  "17"
+                  },
+                  {
+                      "GroupRxId":  1102,
+                      "ZoneName":  "Pool",
+                      "AudioRxId":  "1101",
+                      "AudioRxLabel":  "Audio Output 3",
+                      "ParentUnit":  "Poolhouse 3 Zone Amp",
+                      "ParentUnitId":  1096,
+                      "State":  "stopped",
+                      "Volume":  "72",
+                      "PairedTx":  "",
+                      "Index":  "18"
+                  },
+                  {
+                      "GroupRxId":  1117,
+                      "ZoneName":  "Pool Table",
+                      "AudioRxId":  "1116",
+                      "AudioRxLabel":  "Audio Output 1",
+                      "ParentUnit":  "Gameroom 6 Zone Amp",
+                      "ParentUnitId":  1115,
+                      "State":  "stopped",
+                      "Volume":  "7",
+                      "PairedTx":  "",
+                      "Index":  "19"
+                  },
+                  {
+                      "GroupRxId":  1145,
+                      "ZoneName":  "RX-D46A9127F24A",
+                      "AudioRxId":  "1141",
+                      "AudioRxLabel":  "Audio Output",
+                      "ParentUnit":  "Outdoor Kitchen RX",
+                      "ParentUnitId":  1140,
+                      "State":  "stopped",
+                      "Volume":  "52",
+                      "PairedTx":  "",
+                      "Index":  "20"
+                  },
+                  {
+                      "GroupRxId":  1151,
+                      "ZoneName":  "RX-D46A9127F232",
+                      "AudioRxId":  "1147",
+                      "AudioRxLabel":  "Audio Output",
+                      "ParentUnit":  "Outdoor Seating RX",
+                      "ParentUnitId":  1146,
+                      "State":  "unconnected",
+                      "Volume":  "87",
+                      "PairedTx":  "",
+                      "Index":  "21"
+                  }
+              ],
+    "serial_tx":  [
+                      {
+                          "Id":  1138,
+                          "Label":  "RS-232",
+                          "Name":  "TX-D46A9127D860",
+                          "ParentUnit":  "Gameroom AppleTV TX",
+                          "BaudRate":  "9600"
+                      }
+                  ],
+    "video_tx":  [
+                     {
+                         "Id":  1136,
+                         "Label":  "HDMI In",
+                         "Name":  "TX-D46A9127D860",
+                         "ParentUnit":  "Gameroom AppleTV TX",
+                         "State":  "detecting",
+                         "Resolution":  "N/A"
+                     }
+                 ],
+    "serial_rx":  [
+                      {
+                          "Id":  1144,
+                          "Label":  "RS-232",
+                          "Name":  "RX-D46A9127F24A",
+                          "ParentUnit":  "Outdoor Kitchen RX",
+                          "BaudRate":  "9600"
+                      },
+                      {
+                          "Id":  1150,
+                          "Label":  "RS-232",
+                          "Name":  "RX-D46A9127F232",
+                          "ParentUnit":  "Outdoor Seating RX",
+                          "BaudRate":  "9600"
+                      }
+                  ],
+    "video_rx":  [
+                     {
+                         "Id":  1142,
+                         "Label":  "HDMI Out",
+                         "Name":  "RX-D46A9127F24A",
+                         "ParentUnit":  "Outdoor Kitchen RX",
+                         "State":  "stopped",
+                         "PairedTx":  ""
+                     },
+                     {
+                         "Id":  1148,
+                         "Label":  "HDMI Out",
+                         "Name":  "RX-D46A9127F232",
+                         "ParentUnit":  "Outdoor Seating RX",
+                         "State":  "unconnected",
+                         "PairedTx":  ""
+                     }
+                 ]
+}

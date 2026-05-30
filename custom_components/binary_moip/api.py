@@ -37,17 +37,70 @@ class BinaryMoIPAuthError(BinaryMoIPError):
 
 
 @dataclass
+class MoIPUnit:
+    """A physical hardware unit (amp, TX, RX)."""
+
+    unit_id: int
+    name: str  # unit.settings.name, e.g. "Main 6 Zone Amp"
+    model: str | None = None
+    mac: str | None = None
+    state: str | None = None
+    raw: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
 class MoIPZone:
     """A logical zone derived from a ``group_rx`` entry.
 
-    This is the unit that becomes a Home Assistant media_player entity.
+    This is the unit that becomes a Home Assistant media_player entity. ``name``
+    is ``group_rx.settings.name`` (the user-editable zone name) — NOT the
+    hardware ``audio_rx.label``.
     """
 
-    group_id: str
+    group_id: int
     name: str
-    # IDs of the hardware audio_rx outputs backing this group.
-    audio_rx_ids: list[str] = field(default_factory=list)
+    unit_id: int | None = None
+    # The hardware audio_rx output backing this zone (volume/mute/state live here).
+    audio_rx_id: int | None = None
+    # group_tx id currently routed to this zone (associations.paired_tx); None = off.
+    paired_tx_id: int | None = None
+    # Live state, populated from the backing audio_rx.
+    state: str | None = None
+    volume: float | None = None
+    max_volume: float | None = None
+    volume_range: tuple[float, float] | None = None
+    muted: bool | None = None
     raw: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
+class MoIPSource:
+    """A logical source derived from a ``group_tx`` entry.
+
+    Becomes a selectable source on zone media_player entities. ``name`` is
+    ``group_tx.settings.name`` (often a controller default like
+    ``TX-...``); ``hw_label`` and ``input_type`` provide disambiguating info
+    for synthesizing a friendly label when the name is non-unique.
+    """
+
+    group_id: int
+    name: str
+    unit_id: int | None = None
+    unit_name: str | None = None
+    audio_tx_id: int | None = None
+    hw_label: str | None = None  # audio_tx.label, e.g. "Digital Input"
+    input_type: str | None = None  # e.g. "toslink", "analog", "hdmi"
+    state: str | None = None
+    raw: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
+class MoIPTopology:
+    """The full discovered topology returned by :meth:`async_discover`."""
+
+    units: dict[int, MoIPUnit] = field(default_factory=dict)
+    zones: dict[int, MoIPZone] = field(default_factory=dict)
+    sources: dict[int, MoIPSource] = field(default_factory=dict)
 
 
 class BinaryMoIPClient:
@@ -102,22 +155,49 @@ class BinaryMoIPClient:
         """Perform an authenticated request, refreshing the token on 401."""
         raise NotImplementedError
 
-    async def async_get_zones(self) -> list[MoIPZone]:
-        """Return logical zones by walking ``group_rx``.
+    async def async_discover(self) -> MoIPTopology:
+        """Discover the full topology: units, zones (group_rx), sources (group_tx).
 
-        This is the canonical source of zone naming for the integration. Each
-        returned :class:`MoIPZone` becomes one media_player entity.
+        Canonical naming source for the integration:
+        - zones from ``group_rx.settings.name`` (NOT ``audio_rx.label``),
+        - sources from ``group_tx.settings.name``,
+        dereferencing ``associations`` to link zones↔audio_rx↔paired source.
+
+        See docs/naming-and-discovery.md for the full graph.
         """
         raise NotImplementedError
 
-    async def async_set_volume(self, group_id: str, volume: float) -> None:
-        """Set the volume (0.0–1.0) for a logical zone."""
+    async def async_get_units(self) -> list[MoIPUnit]:
+        """List physical units (GET /moip/unit)."""
         raise NotImplementedError
 
-    async def async_set_mute(self, group_id: str, mute: bool) -> None:
-        """Mute or unmute a logical zone."""
+    async def async_get_zones(self) -> list[MoIPZone]:
+        """List logical zones by walking ``group_rx`` and their backing audio_rx."""
         raise NotImplementedError
 
-    async def async_select_source(self, group_id: str, source_id: str) -> None:
-        """Route an input source to a logical zone."""
+    async def async_get_sources(self) -> list[MoIPSource]:
+        """List logical sources by walking ``group_tx``."""
+        raise NotImplementedError
+
+    async def async_set_volume(self, zone: MoIPZone, volume: float) -> None:
+        """Set volume for a zone. ``volume`` is HA-scale 0.0–1.0.
+
+        Implementation scales into the zone's ``volume_range``/``max_volume``
+        and PUTs ``settings.volume`` on the backing ``audio_rx``.
+        """
+        raise NotImplementedError
+
+    async def async_set_mute(self, zone: MoIPZone, mute: bool) -> None:
+        """Mute/unmute a zone.
+
+        MoIP mute is an ``AudioMuteList`` (list of output ports), not a bool:
+        mute = the audio_rx's ``supported_output`` ports; unmute = empty list.
+        """
+        raise NotImplementedError
+
+    async def async_select_source(self, group_rx_id: int, group_tx_id: int | None) -> None:
+        """Route a source to a zone by setting ``group_rx.associations.paired_tx``.
+
+        ``group_tx_id`` of ``None`` unpairs the zone (off).
+        """
         raise NotImplementedError

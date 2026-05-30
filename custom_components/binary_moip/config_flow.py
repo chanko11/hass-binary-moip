@@ -6,7 +6,13 @@ import logging
 from typing import Any
 
 import voluptuous as vol
-from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
+from homeassistant.config_entries import (
+    ConfigEntry,
+    ConfigFlow,
+    ConfigFlowResult,
+    OptionsFlow,
+)
+from homeassistant.core import callback
 
 from .api import BinaryMoIPAuthError, BinaryMoIPClient, BinaryMoIPConnectionError
 from .const import (
@@ -67,4 +73,49 @@ class BinaryMoIPConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def _async_validate(self, user_input: dict[str, Any]) -> None:
         """Validate credentials against the controller. (Skeleton.)"""
+        raise NotImplementedError
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry: ConfigEntry) -> BinaryMoIPOptionsFlow:
+        """Return the options flow handler."""
+        return BinaryMoIPOptionsFlow()
+
+
+class BinaryMoIPOptionsFlow(OptionsFlow):
+    """Options flow: enable/disable and label each discovered zone and source.
+
+    The integration discovers ALL zones (group_rx) and sources (group_tx) from
+    the controller. This flow lets the user pick which surface in normal HA
+    pickers and give each a friendly HA-side label. Selections persist in
+    ``config_entry.options`` under OPT_ZONES / OPT_SOURCES. See
+    docs/naming-and-discovery.md.
+    """
+
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Top-level menu: choose to configure zones or sources."""
+        return self.async_show_menu(
+            step_id="init", menu_options=["zones", "sources"]
+        )
+
+    async def async_step_zones(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Enable/disable and label zones (group_rx).
+
+        Schema is built dynamically from the coordinator's discovered zones.
+        """
+        raise NotImplementedError
+
+    async def async_step_sources(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Enable/disable and label sources (group_tx).
+
+        Source rows show synthesized disambiguating info (parent unit +
+        hardware label + input type) since controller source names are often
+        non-unique defaults.
+        """
         raise NotImplementedError
