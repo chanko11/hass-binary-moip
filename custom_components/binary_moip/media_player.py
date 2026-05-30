@@ -16,7 +16,7 @@ from homeassistant.components.media_player import (
     MediaPlayerState,
 )
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers import device_registry as dr, entity_registry as er
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -73,6 +73,13 @@ async def async_setup_entry(
             continue
         if gid not in enabled_ids:
             registry.async_remove(reg_entry.entity_id)
+
+    # Remove the legacy per-amp devices (identifier "..._unit_<id>"); zones are
+    # now modeled as one device each so they can carry their own area.
+    dev_reg = dr.async_get(hass)
+    for device in dr.async_entries_for_config_entry(dev_reg, entry.entry_id):
+        if any(f"{entry.entry_id}_unit_" in ident for _, ident in device.identifiers):
+            dev_reg.async_remove_device(device.id)
 
     async_add_entities(
         BinaryMoIPMediaPlayer(coordinator, group_id) for group_id in enabled_ids
@@ -171,21 +178,17 @@ class BinaryMoIPMediaPlayer(
 
     @property
     def device_info(self) -> DeviceInfo:
-        """Group zones under their parent unit (amp) device when known."""
+        """One device per zone, so each is independently area-assignable."""
         zone = self._zone
+        # Each zone is its own device so it can be assigned to its own HA area
+        # (the amps span multiple rooms, so grouping by amp would be wrong).
+        # The parent amp's model/name are carried for reference only.
         unit = self.coordinator.data.units.get(zone.unit_id) if zone.unit_id else None
-        entry_id = self.coordinator.config_entry.entry_id
-        if unit is not None:
-            return DeviceInfo(
-                identifiers={(DOMAIN, f"{entry_id}_unit_{unit.unit_id}")},
-                name=unit.name,
-                manufacturer=MANUFACTURER,
-                model=unit.model,
-            )
         return DeviceInfo(
             identifiers={(DOMAIN, self._attr_unique_id)},
-            name=self._zone.name,
+            name=self.name,
             manufacturer=MANUFACTURER,
+            model=unit.model if unit is not None else None,
         )
 
     @property
