@@ -38,6 +38,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: BinaryMoIPConfigEntry) -
     entry.runtime_data = coordinator
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    # Real-time updates via the change-event websocket (polling is the fallback).
+    coordinator.start_websocket()
     # Reload when options (zone/source enable + labels) change.
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))
     return True

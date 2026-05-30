@@ -74,6 +74,21 @@ unit ──┬─ associations.group.rx[] → group_rx ──┬─ settings.nam
 4. **The RYFF streamer exposes 4 sources** all named `TX-000FFFA11BEB`
    ("Audio Input"). Identical names → disambiguate by `group_tx` id/index.
 
+## Eventing (websocket)
+
+Real-time updates come from the change-event websocket; polling (every
+`FALLBACK_SCAN_INTERVAL`, 5 min) is only a fallback for a dropped socket.
+
+- **Endpoint:** `wss://{host}:{port}/api/v1/moip/change`
+- **Auth:** the controller can't read an `Authorization` header here, so the JWT
+  is passed via the WS subprotocol as `Bearer.{token}`.
+- **Messages:** `{"changes": [{"url": "/api/v1/moip/audio_rx/1023", "kind": "added|removed|modified|ping"}]}`.
+- The coordinator requests a (debounced, ~2s) refresh on any non-`ping`
+  `/moip/` change, coalescing bursts (e.g. a volume ramp) into ≤1 full
+  rediscovery. Reconnects with exponential backoff (2s→60s).
+- A raw-socket fallback exists at `/api/v1/moip/raw_change` (line-based
+  `MOD /api/v1/moip/unit/1022`); not used by this integration.
+
 ## Config / options flow behavior
 
 - Discover and list **all** zones and sources in the integration's config UI.

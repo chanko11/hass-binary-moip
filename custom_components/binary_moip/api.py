@@ -26,7 +26,13 @@ import time
 from dataclasses import dataclass, field
 from typing import Any
 
-from aiohttp import ClientError, ClientResponseError, ClientSession, ClientTimeout
+from aiohttp import (
+    ClientError,
+    ClientResponseError,
+    ClientSession,
+    ClientTimeout,
+    ClientWebSocketResponse,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -38,6 +44,7 @@ _GROUP_RX = "/api/v1/moip/group_rx/{id}"
 _GROUP_TX = "/api/v1/moip/group_tx/{id}"
 _AUDIO_RX = "/api/v1/moip/audio_rx/{id}"
 _AUDIO_TX = "/api/v1/moip/audio_tx/{id}"
+_CHANGE_WS = "/api/v1/moip/change"
 
 # Re-login this many seconds before the token's stated expiry.
 _TOKEN_REFRESH_MARGIN = 30.0
@@ -380,6 +387,22 @@ class BinaryMoIPClient:
             "PUT",
             _GROUP_RX.format(id=group_rx_id),
             json={"associations": {"paired_tx": group_tx_id}},
+        )
+
+    async def async_ws_connect(self) -> ClientWebSocketResponse:
+        """Open the change-event websocket.
+
+        The controller can't read an Authorization header here, so the JWT is
+        smuggled via the WS subprotocol as ``Bearer.{token}`` (per the API spec).
+        Messages are ``{"changes": [{"url": ..., "kind": ...}]}``.
+        """
+        await self._ensure_token()
+        url = f"wss://{self._host}:{self._port}{_CHANGE_WS}"
+        return await self._session.ws_connect(
+            url,
+            protocols=(f"Bearer.{self._access_token}",),
+            ssl=self._ssl,
+            heartbeat=30,
         )
 
 

@@ -51,8 +51,11 @@ STATE_UPGRADING: Final = "upgrading"
 STATE_UNKNOWN: Final = "unknown"
 
 # How often the coordinator polls the controller while in polling mode.
-# WebSocket subscription (a later stage) will reduce reliance on this.
 DEFAULT_SCAN_INTERVAL: Final = timedelta(seconds=15)
+
+# Fallback poll interval once the change-event websocket provides real-time
+# push; polling then only guards against a dropped socket.
+FALLBACK_SCAN_INTERVAL: Final = timedelta(minutes=5)
 
 # Manufacturer string used for device registry entries.
 MANUFACTURER: Final = "Snap One"
