@@ -1,0 +1,12 @@
+{
+  "domain": "binary_moip",
+  "name": "Binary MoIP",
+  "version": "0.1.0",
+  "documentation": "https://github.com/yourusername/hass-binary-moip",
+  "issue_tracker": "https://github.com/yourusername/hass-binary-moip/issues",
+  "codeowners": [],
+  "config_flow": true,
+  "iot_class": "local_polling",
+  "requirements": [],
+  "dependencies": []
+}
