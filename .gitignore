@@ -37,6 +37,7 @@ credentials.json
 
 # HA dev container
 ha-dev-config/
+ha-dev/config/
 *.db
 *.db-journal
 home-assistant.log*

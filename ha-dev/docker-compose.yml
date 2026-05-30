@@ -1,0 +1,22 @@
+# Home Assistant dev container for testing the binary_moip integration.
+#
+# Networking: this dev machine has its own IP, distinct from the production HA,
+# so there is no port collision — HA uses its standard port 8123. We run with
+# network_mode: host, the Home Assistant-recommended mode (also enables local
+# discovery if we ever need it). In host mode `ports:` is not used; HA binds
+# 8123 directly on this host.
+
+services:
+  homeassistant:
+    container_name: hass-binary-moip-dev
+    image: ghcr.io/home-assistant/home-assistant:stable
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      - TZ=America/Chicago
+    volumes:
+      # HA config directory (gitignored). HA populates defaults on first boot.
+      - ./config:/config
+      # Mount the integration source read-write so HA picks up our code (and
+      # any edits) on container restart. This overlays /config/custom_components.
+      - ../custom_components:/config/custom_components:rw
