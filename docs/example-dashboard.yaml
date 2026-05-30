@@ -1,0 +1,84 @@
+# Example Home Assistant dashboard for the Binary MoIP zones.
+#
+# Paste into: Settings -> Dashboards -> (a dashboard) -> top-right menu ->
+# "Edit dashboard" -> top-right menu -> "Raw configuration editor".
+# Replace the whole contents, or merge the `views:` entry into your own.
+#
+# Grouped by amp/building because areas aren't assigned yet. Once you set an
+# area per zone (Settings -> Devices), an Area card or auto-entities by area is
+# the cleaner long-term layout. Each Media Control card shows the source
+# dropdown (incl. "None" to unpair), volume slider, and mute.
+
+title: Binary MoIP
+views:
+  - title: MoIP Zones
+    path: moip-zones
+    type: sections
+    max_columns: 3
+    sections:
+      - type: grid
+        cards:
+          - type: heading
+            heading: Main House (Main 6 Zone Amp)
+          - type: media-control
+            entity: media_player.main_6_zone_amp_master_bedroom
+          - type: media-control
+            entity: media_player.main_6_zone_amp_master_bathroom
+          - type: media-control
+            entity: media_player.main_6_zone_amp_dining_room
+          - type: media-control
+            entity: media_player.main_6_zone_amp_back_sitting_room
+          - type: media-control
+            entity: media_player.main_6_zone_amp_kitchen
+          - type: media-control
+            entity: media_player.main_6_zone_amp_parlor
+      - type: grid
+        cards:
+          - type: heading
+            heading: Casita (Casita 6 Zone Amp)
+          - type: media-control
+            entity: media_player.casita_6_zone_amp_pool_kitchen_side
+          - type: media-control
+            entity: media_player.casita_6_zone_amp_outdoor_seating
+          - type: media-control
+            entity: media_player.casita_6_zone_amp_outdoor_kitchen_1
+          - type: media-control
+            entity: media_player.casita_6_zone_amp_outdoor_kitchen_2
+          - type: media-control
+            entity: media_player.casita_6_zone_amp_garage
+          - type: media-control
+            entity: media_player.casita_6_zone_amp_shop
+      - type: grid
+        cards:
+          - type: heading
+            heading: Casita (Casita 3 Zone Amp)
+          - type: media-control
+            entity: media_player.casita_3_zone_amp_casita_kitchen
+          - type: media-control
+            entity: media_player.casita_3_zone_amp_sewing_room
+          - type: media-control
+            entity: media_player.casita_3_zone_amp_casita_back_porch
+      - type: grid
+        cards:
+          - type: heading
+            heading: Poolhouse (Poolhouse 3 Zone Amp)
+          - type: media-control
+            entity: media_player.poolhouse_3_zone_amp_workout
+          - type: media-control
+            entity: media_player.poolhouse_3_zone_amp_pool
+          - type: media-control
+            entity: media_player.poolhouse_3_zone_amp_skip
+      - type: grid
+        cards:
+          - type: heading
+            heading: Gameroom (Gameroom 6 Zone Amp)
+          - type: media-control
+            entity: media_player.gameroom_6_zone_amp_pool_table
+      - type: grid
+        cards:
+          - type: heading
+            heading: A/V Receivers
+          - type: media-control
+            entity: media_player.outdoor_kitchen_rx_rx_d46a9127f24a
+          - type: media-control
+            entity: media_player.outdoor_seating_rx_rx_d46a9127f232
