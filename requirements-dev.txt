@@ -1,0 +1,13 @@
+# Development/test dependencies (NOT runtime — HA provides runtime deps).
+# Install: pip install -r requirements-dev.txt
+
+# Load local credentials from .env for dev scripts/tests (dev only).
+python-dotenv>=1.0
+
+# HTTP client used by the API client and dev scripts (HA bundles this at
+# runtime; pinned here so dev scripts/tests work outside HA).
+aiohttp>=3.9
+
+# Test tooling.
+pytest>=8.0
+pytest-asyncio>=0.23

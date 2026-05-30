@@ -124,8 +124,11 @@ class BinaryMoIPClient:
         self._password = password
         self._verify_ssl = verify_ssl
 
+        # The login response carries only an access token + expiry (no refresh
+        # token), so re-authentication is a fresh login with the stored
+        # credentials. Track expiry to know when to re-login.
         self._access_token: str | None = None
-        self._refresh_token: str | None = None
+        self._token_expires_at: float | None = None
 
     @property
     def base_url(self) -> str:
@@ -133,16 +136,15 @@ class BinaryMoIPClient:
         return f"https://{self._host}:{self._port}"
 
     async def authenticate(self) -> None:
-        """Obtain a JWT access/refresh token pair.
+        """Log in (POST /api/v1/base/auth/login) and store the JWT access token.
+
+        The response is ``{accessToken, tokenType, expiresIn}`` — there is no
+        refresh token, so token renewal is just calling this again.
 
         Raises:
             BinaryMoIPAuthError: credentials rejected.
             BinaryMoIPConnectionError: controller unreachable.
         """
-        raise NotImplementedError
-
-    async def async_refresh_token(self) -> None:
-        """Refresh the access token using the stored refresh token."""
         raise NotImplementedError
 
     async def _request(

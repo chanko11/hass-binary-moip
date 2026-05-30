@@ -20,3 +20,10 @@ The existing community integration ([gjbadros/hass-binarymoip](https://github.co
 - B-900-MOIP-4K-RX (A/V receiver)
 - EA-MOIP-AMP-6D-50 (3-zone amp)
 - EA-MOIP-AMP-12D-100 (6-zone amp)
+
+## Development
+
+- Credential handling (HA config entry vs local `.env`), dev setup, and the
+  auth model: [`docs/development.md`](docs/development.md)
+- Naming & discovery model: [`docs/naming-and-discovery.md`](docs/naming-and-discovery.md)
+- Local HA dev instance: [`ha-dev/README.md`](ha-dev/README.md)
