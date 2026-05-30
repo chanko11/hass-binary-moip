@@ -25,7 +25,12 @@ from .const import (
     DEFAULT_PORT,
     DEFAULT_VERIFY_SSL,
     DOMAIN,
+    OPT_ENABLED,
+    OPT_LABEL,
+    OPT_SOURCES,
+    OPT_ZONES,
 )
+from .media_player import _build_source_maps
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -98,6 +103,65 @@ class BinaryMoIPConfigFlow(ConfigFlow, domain=DOMAIN):
         return BinaryMoIPOptionsFlow()
 
 
+_ENABLED_SUFFIX = ""  # enabled checkbox keyed by the item's display name
+_LABEL_SUFFIX = " — custom name"
+
+
+def _unique_displays(items: list[tuple[int, str]]) -> dict[int, str]:
+    """Map each item id to a unique display string (append [id] on collision)."""
+    counts: dict[str, int] = {}
+    for _, name in items:
+        counts[name] = counts.get(name, 0) + 1
+    displays: dict[int, str] = {}
+    for iid, name in items:
+        displays[iid] = name if counts[name] == 1 else f"{name} [{iid}]"
+    return displays
+
+
+def _build_options_schema(
+    items: list[tuple[int, str]], existing: dict
+) -> tuple[vol.Schema, dict[str, int], dict[str, int]]:
+    """Build a per-item enable+label schema.
+
+    Returns (schema, enabled_key->id, label_key->id). Each item gets an enabled
+    boolean (default True) keyed by its display name, and an optional free-text
+    label (default = current override) keyed by "<display> — custom name".
+    """
+    displays = _unique_displays(items)
+    schema: dict = {}
+    enabled_keys: dict[str, int] = {}
+    label_keys: dict[str, int] = {}
+    for iid, _ in items:
+        disp = displays[iid]
+        cur = existing.get(str(iid), {})
+        ekey = f"{disp}{_ENABLED_SUFFIX}"
+        lkey = f"{disp}{_LABEL_SUFFIX}"
+        schema[vol.Optional(ekey, default=cur.get(OPT_ENABLED, True))] = bool
+        schema[vol.Optional(lkey, default=cur.get(OPT_LABEL, ""))] = str
+        enabled_keys[ekey] = iid
+        label_keys[lkey] = iid
+    return vol.Schema(schema), enabled_keys, label_keys
+
+
+def _parse_options(
+    user_input: dict, enabled_keys: dict[str, int], label_keys: dict[str, int]
+) -> dict:
+    """Fold submitted form values into the compact options map for a category.
+
+    Only stores non-default values: ``enabled`` is omitted when True (the
+    default), ``label`` when blank — so an untouched system yields ``{}``.
+    """
+    result: dict[str, dict] = {}
+    for key, iid in enabled_keys.items():
+        if user_input.get(key, True) is False:
+            result.setdefault(str(iid), {})[OPT_ENABLED] = False
+    for key, iid in label_keys.items():
+        label = (user_input.get(key) or "").strip()
+        if label:
+            result.setdefault(str(iid), {})[OPT_LABEL] = label
+    return result
+
+
 class BinaryMoIPOptionsFlow(OptionsFlow):
     """Options flow: enable/disable and label each discovered zone and source.
 
@@ -112,26 +176,48 @@ class BinaryMoIPOptionsFlow(OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Top-level menu: choose to configure zones or sources."""
-        return self.async_show_menu(
-            step_id="init", menu_options=["zones", "sources"]
-        )
+        return self.async_show_menu(step_id="init", menu_options=["zones", "sources"])
 
     async def async_step_zones(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Enable/disable and label zones (group_rx).
+        """Enable/disable and label zones (group_rx)."""
+        coordinator = self.config_entry.runtime_data
+        items = sorted(
+            ((z.group_id, z.name) for z in coordinator.data.zones.values()),
+            key=lambda it: it[1].lower(),
+        )
+        existing = self.config_entry.options.get(OPT_ZONES, {})
+        schema, enabled_keys, label_keys = _build_options_schema(items, existing)
 
-        Schema is built dynamically from the coordinator's discovered zones.
-        """
-        raise NotImplementedError
+        if user_input is not None:
+            new_map = _parse_options(user_input, enabled_keys, label_keys)
+            options = {**self.config_entry.options, OPT_ZONES: new_map}
+            return self.async_create_entry(title="", data=options)
+
+        return self.async_show_form(step_id="zones", data_schema=schema)
 
     async def async_step_sources(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Enable/disable and label sources (group_tx).
 
-        Source rows show synthesized disambiguating info (parent unit +
+        Source rows use synthesized, unique display names (parent unit +
         hardware label + input type) since controller source names are often
         non-unique defaults.
         """
-        raise NotImplementedError
+        coordinator = self.config_entry.runtime_data
+        labels, _ = _build_source_maps(coordinator.data, {})  # synthesized names
+        items = sorted(
+            ((sid, labels[sid]) for sid in coordinator.data.sources),
+            key=lambda it: it[1].lower(),
+        )
+        existing = self.config_entry.options.get(OPT_SOURCES, {})
+        schema, enabled_keys, label_keys = _build_options_schema(items, existing)
+
+        if user_input is not None:
+            new_map = _parse_options(user_input, enabled_keys, label_keys)
+            options = {**self.config_entry.options, OPT_SOURCES: new_map}
+            return self.async_create_entry(title="", data=options)
+
+        return self.async_show_form(step_id="sources", data_schema=schema)

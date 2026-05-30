@@ -16,6 +16,7 @@ from homeassistant.components.media_player import (
     MediaPlayerState,
 )
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -56,10 +57,24 @@ async def async_setup_entry(
     def _enabled(group_id: int) -> bool:
         return zone_opts.get(str(group_id), {}).get(OPT_ENABLED, True)
 
+    enabled_ids = {gid for gid in coordinator.data.zones if _enabled(gid)}
+
+    # On reload, drop registry entries for zones that are now disabled or gone,
+    # so they don't linger as unavailable entities.
+    registry = er.async_get(hass)
+    prefix = f"{entry.entry_id}_"
+    for reg_entry in er.async_entries_for_config_entry(registry, entry.entry_id):
+        if reg_entry.domain != "media_player" or not reg_entry.unique_id.startswith(prefix):
+            continue
+        try:
+            gid = int(reg_entry.unique_id[len(prefix):])
+        except ValueError:
+            continue
+        if gid not in enabled_ids:
+            registry.async_remove(reg_entry.entity_id)
+
     async_add_entities(
-        BinaryMoIPMediaPlayer(coordinator, group_id)
-        for group_id in coordinator.data.zones
-        if _enabled(group_id)
+        BinaryMoIPMediaPlayer(coordinator, group_id) for group_id in enabled_ids
     )
 
 

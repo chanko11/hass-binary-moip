@@ -21,5 +21,24 @@
     "abort": {
       "already_configured": "This controller is already configured."
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Binary MoIP options",
+        "menu_options": {
+          "zones": "Zones",
+          "sources": "Sources"
+        }
+      },
+      "zones": {
+        "title": "Zones",
+        "description": "Uncheck a zone to hide it from Home Assistant; type a custom name to rename it. Blank keeps the controller's name."
+      },
+      "sources": {
+        "title": "Sources",
+        "description": "Uncheck a source to hide it from the source list; type a custom name to rename it. Blank keeps the synthesized name."
+      }
+    }
   }
 }
