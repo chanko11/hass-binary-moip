@@ -17,12 +17,28 @@ Usage:
 from __future__ import annotations
 
 import asyncio
+import importlib.util
 import os
 import sys
 from pathlib import Path
+from types import ModuleType
 
-# Make the custom_components package importable when run from the repo root.
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "custom_components"))
+_ROOT = Path(__file__).resolve().parent.parent
+
+
+def _load_api() -> ModuleType:
+    """Load the client's api.py directly, bypassing the package __init__.
+
+    The integration package's __init__ imports Home Assistant, which this
+    standalone dev harness deliberately does not depend on. api.py itself has
+    no HA imports, so we load it as a standalone module by file path.
+    """
+    api_path = _ROOT / "custom_components" / "binary_moip" / "api.py"
+    spec = importlib.util.spec_from_file_location("binary_moip_api", api_path)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module  # register so @dataclass can introspect
+    spec.loader.exec_module(module)
+    return module
 
 
 def _load_env() -> dict[str, object]:
@@ -32,7 +48,7 @@ def _load_env() -> dict[str, object]:
     except ModuleNotFoundError:
         sys.exit("python-dotenv not installed. Run: pip install -r requirements-dev.txt")
 
-    env_path = Path(__file__).resolve().parent.parent / ".env"
+    env_path = _ROOT / ".env"
     if not env_path.exists():
         sys.exit(f"No .env found at {env_path}. Copy .env.example to .env and fill it in.")
     load_dotenv(env_path)
@@ -53,7 +69,8 @@ def _load_env() -> dict[str, object]:
 async def _main() -> None:
     from aiohttp import ClientSession
 
-    from binary_moip.api import BinaryMoIPClient  # noqa: PLC0415
+    api = _load_api()
+    BinaryMoIPClient = api.BinaryMoIPClient
 
     cfg = _load_env()
     print(f"Connecting to MoIP controller at {cfg['host']}:{cfg['port']} "

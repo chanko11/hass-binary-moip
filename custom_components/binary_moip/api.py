@@ -3,25 +3,51 @@
 Wraps the Binary MoIP REST API v1.3.0:
 https://help.snapone.com/moip-ig/Content/Binary%20MoIP%20Topics/API%20v1.3.0.html
 
-Design notes (not yet implemented):
-- JWT auth with token refresh. ``authenticate`` obtains an access token;
-  requests transparently re-authenticate / refresh on 401.
+Design notes:
+- JWT auth. ``authenticate`` POSTs credentials and stores an access token; the
+  response has no refresh token, so renewal is a fresh login. ``_request``
+  re-authenticates once on 401 and retries.
 - The API separates *logical zones* (``group_rx`` — user-named, the unit a
   human thinks of as "the Kitchen") from *hardware outputs* (``audio_rx`` —
-  default names tied to physical RX hardware). This client MUST surface zones
-  by walking ``group_rx`` so entities get the user's zone names, not the
-  hardware defaults. See ``async_get_zones``.
+  default names tied to physical RX hardware). This client surfaces zones by
+  walking ``group_rx`` so entities get the user's zone names, not the hardware
+  defaults.
+- Discovery enumerates via units: ``GET /unit`` → each unit's
+  ``associations.group.rx[]`` / ``group.tx[]`` → ``group_rx``/``group_tx``
+  details → backing ``audio_rx``/``audio_tx``. Validated to reproduce all
+  zones/sources on the reference system. See docs/naming-and-discovery.md.
 """
 
 from __future__ import annotations
 
+import asyncio
 import logging
+import time
 from dataclasses import dataclass, field
 from typing import Any
 
-from aiohttp import ClientSession
+from aiohttp import ClientError, ClientResponseError, ClientSession, ClientTimeout
 
 _LOGGER = logging.getLogger(__name__)
+
+# API paths.
+_LOGIN = "/api/v1/base/auth/login"
+_UNIT_LIST = "/api/v1/moip/unit"
+_UNIT = "/api/v1/moip/unit/{id}"
+_GROUP_RX = "/api/v1/moip/group_rx/{id}"
+_GROUP_TX = "/api/v1/moip/group_tx/{id}"
+_AUDIO_RX = "/api/v1/moip/audio_rx/{id}"
+_AUDIO_TX = "/api/v1/moip/audio_tx/{id}"
+
+# Re-login this many seconds before the token's stated expiry.
+_TOKEN_REFRESH_MARGIN = 30.0
+# Per-request timeout (seconds).
+_REQUEST_TIMEOUT = 15.0
+
+
+def aiohttp_timeout() -> ClientTimeout:
+    """Return the standard per-request timeout."""
+    return ClientTimeout(total=_REQUEST_TIMEOUT)
 
 
 class BinaryMoIPError(Exception):
@@ -70,6 +96,9 @@ class MoIPZone:
     max_volume: float | None = None
     volume_range: tuple[float, float] | None = None
     muted: bool | None = None
+    # Supported output ports (audio_rx.settings.supported_output); the set we
+    # write to settings.mute to mute, or [] to unmute.
+    mute_ports: list[str] = field(default_factory=list)
     raw: dict[str, Any] = field(default_factory=dict)
 
 
@@ -135,6 +164,11 @@ class BinaryMoIPClient:
         """Return the base URL for REST requests."""
         return f"https://{self._host}:{self._port}"
 
+    @property
+    def _ssl(self) -> bool:
+        """Per-request ssl arg: False disables verification (self-signed certs)."""
+        return self._verify_ssl
+
     async def authenticate(self) -> None:
         """Log in (POST /api/v1/base/auth/login) and store the JWT access token.
 
@@ -145,7 +179,40 @@ class BinaryMoIPClient:
             BinaryMoIPAuthError: credentials rejected.
             BinaryMoIPConnectionError: controller unreachable.
         """
-        raise NotImplementedError
+        url = f"{self.base_url}{_LOGIN}"
+        payload = {"username": self._username, "password": self._password}
+        try:
+            async with self._session.post(
+                url,
+                json=payload,
+                ssl=self._ssl,
+                timeout=aiohttp_timeout(),
+            ) as resp:
+                if resp.status in (400, 401, 403):
+                    raise BinaryMoIPAuthError(
+                        f"Login rejected (HTTP {resp.status})"
+                    )
+                resp.raise_for_status()
+                data = await resp.json()
+        except BinaryMoIPAuthError:
+            raise
+        except (ClientError, asyncio.TimeoutError) as err:
+            raise BinaryMoIPConnectionError(f"Login request failed: {err}") from err
+
+        token = data.get("accessToken")
+        if not token:
+            raise BinaryMoIPAuthError("Login response missing accessToken")
+        self._access_token = token
+        expires_in = float(data.get("expiresIn", 3600))
+        self._token_expires_at = time.monotonic() + expires_in - _TOKEN_REFRESH_MARGIN
+
+    async def _ensure_token(self) -> None:
+        """Authenticate if there is no valid (non-expired) token."""
+        if self._access_token is None or (
+            self._token_expires_at is not None
+            and time.monotonic() >= self._token_expires_at
+        ):
+            await self.authenticate()
 
     async def _request(
         self,
@@ -154,8 +221,48 @@ class BinaryMoIPClient:
         *,
         json: dict[str, Any] | None = None,
     ) -> Any:
-        """Perform an authenticated request, refreshing the token on 401."""
-        raise NotImplementedError
+        """Perform an authenticated request, re-authenticating once on 401.
+
+        Returns parsed JSON, or ``None`` for empty/204 responses.
+        """
+        await self._ensure_token()
+        url = f"{self.base_url}{path}"
+
+        for attempt in (1, 2):
+            headers = {"Authorization": f"Bearer {self._access_token}"}
+            try:
+                async with self._session.request(
+                    method,
+                    url,
+                    json=json,
+                    headers=headers,
+                    ssl=self._ssl,
+                    timeout=aiohttp_timeout(),
+                ) as resp:
+                    if resp.status == 401 and attempt == 1:
+                        # Token may have been invalidated server-side; re-login.
+                        self._access_token = None
+                        await self.authenticate()
+                        continue
+                    if resp.status == 401:
+                        raise BinaryMoIPAuthError("Unauthorized after re-login")
+                    resp.raise_for_status()
+                    if resp.status == 204 or resp.content_length == 0:
+                        return None
+                    return await resp.json()
+            except BinaryMoIPAuthError:
+                raise
+            except ClientResponseError as err:
+                raise BinaryMoIPError(
+                    f"{method} {path} failed: HTTP {err.status} {err.message}"
+                ) from err
+            except (ClientError, asyncio.TimeoutError) as err:
+                raise BinaryMoIPConnectionError(
+                    f"{method} {path} failed: {err}"
+                ) from err
+
+        # Unreachable (loop always returns or raises), but satisfies type checker.
+        raise BinaryMoIPError(f"{method} {path} failed")
 
     async def async_discover(self) -> MoIPTopology:
         """Discover the full topology: units, zones (group_rx), sources (group_tx).
@@ -165,29 +272,91 @@ class BinaryMoIPClient:
         - sources from ``group_tx.settings.name``,
         dereferencing ``associations`` to link zones↔audio_rx↔paired source.
 
-        See docs/naming-and-discovery.md for the full graph.
+        Enumerates via unit associations (validated to reproduce every
+        zone/source on the reference system). See docs/naming-and-discovery.md.
         """
-        raise NotImplementedError
+        topology = MoIPTopology()
+
+        # 1) Units, fetched concurrently.
+        id_list = await self._request("GET", _UNIT_LIST)
+        unit_ids = [int(i) for i in (id_list or {}).get("items", [])]
+        unit_objs = await asyncio.gather(
+            *(self._request("GET", _UNIT.format(id=uid)) for uid in unit_ids)
+        )
+
+        group_rx_ids: list[int] = []
+        group_tx_ids: list[int] = []
+        for raw in unit_objs:
+            unit = _parse_unit(raw)
+            topology.units[unit.unit_id] = unit
+            assoc = (raw.get("associations") or {}).get("group") or {}
+            group_rx_ids += [int(i) for i in assoc.get("rx", [])]
+            group_tx_ids += [int(i) for i in assoc.get("tx", [])]
+
+        # 2) Zones (group_rx) and sources (group_tx), concurrently.
+        rx_objs, tx_objs = await asyncio.gather(
+            asyncio.gather(*(self._request("GET", _GROUP_RX.format(id=i)) for i in group_rx_ids)),
+            asyncio.gather(*(self._request("GET", _GROUP_TX.format(id=i)) for i in group_tx_ids)),
+        )
+
+        zones = [_parse_zone(raw, topology.units) for raw in rx_objs]
+        sources = [_parse_source(raw, topology.units) for raw in tx_objs]
+
+        # 3) Backing audio_rx (zone volume/mute/state) and audio_tx (source
+        #    hw label + input type), concurrently.
+        audio_rx_objs = await asyncio.gather(
+            *(
+                self._request("GET", _AUDIO_RX.format(id=z.audio_rx_id))
+                if z.audio_rx_id is not None
+                else _none()
+                for z in zones
+            )
+        )
+        audio_tx_objs = await asyncio.gather(
+            *(
+                self._request("GET", _AUDIO_TX.format(id=s.audio_tx_id))
+                if s.audio_tx_id is not None
+                else _none()
+                for s in sources
+            )
+        )
+
+        for zone, arx in zip(zones, audio_rx_objs):
+            _apply_audio_rx(zone, arx)
+            topology.zones[zone.group_id] = zone
+        for source, atx in zip(sources, audio_tx_objs):
+            _apply_audio_tx(source, atx)
+            topology.sources[source.group_id] = source
+
+        return topology
 
     async def async_get_units(self) -> list[MoIPUnit]:
         """List physical units (GET /moip/unit)."""
-        raise NotImplementedError
+        return list((await self.async_discover()).units.values())
 
     async def async_get_zones(self) -> list[MoIPZone]:
         """List logical zones by walking ``group_rx`` and their backing audio_rx."""
-        raise NotImplementedError
+        return list((await self.async_discover()).zones.values())
 
     async def async_get_sources(self) -> list[MoIPSource]:
         """List logical sources by walking ``group_tx``."""
-        raise NotImplementedError
+        return list((await self.async_discover()).sources.values())
 
     async def async_set_volume(self, zone: MoIPZone, volume: float) -> None:
         """Set volume for a zone. ``volume`` is HA-scale 0.0–1.0.
 
-        Implementation scales into the zone's ``volume_range``/``max_volume``
-        and PUTs ``settings.volume`` on the backing ``audio_rx``.
+        Scales into the zone's ``volume_range`` (clamped by ``max_volume``) and
+        PUTs ``settings.volume`` on the backing ``audio_rx``.
         """
-        raise NotImplementedError
+        if zone.audio_rx_id is None:
+            raise BinaryMoIPError(f"Zone {zone.group_id} has no audio_rx to set volume")
+        lo, hi = zone.volume_range or (0.0, 100.0)
+        target = lo + max(0.0, min(1.0, volume)) * (hi - lo)
+        if zone.max_volume is not None:
+            target = min(target, zone.max_volume)
+        await self._request(
+            "PUT", _AUDIO_RX.format(id=zone.audio_rx_id), json={"settings": {"volume": target}}
+        )
 
     async def async_set_mute(self, zone: MoIPZone, mute: bool) -> None:
         """Mute/unmute a zone.
@@ -195,11 +364,118 @@ class BinaryMoIPClient:
         MoIP mute is an ``AudioMuteList`` (list of output ports), not a bool:
         mute = the audio_rx's ``supported_output`` ports; unmute = empty list.
         """
-        raise NotImplementedError
+        if zone.audio_rx_id is None:
+            raise BinaryMoIPError(f"Zone {zone.group_id} has no audio_rx to mute")
+        ports = zone.mute_ports if mute else []
+        await self._request(
+            "PUT", _AUDIO_RX.format(id=zone.audio_rx_id), json={"settings": {"mute": ports}}
+        )
 
     async def async_select_source(self, group_rx_id: int, group_tx_id: int | None) -> None:
         """Route a source to a zone by setting ``group_rx.associations.paired_tx``.
 
         ``group_tx_id`` of ``None`` unpairs the zone (off).
         """
-        raise NotImplementedError
+        await self._request(
+            "PUT",
+            _GROUP_RX.format(id=group_rx_id),
+            json={"associations": {"paired_tx": group_tx_id}},
+        )
+
+
+async def _none() -> None:
+    """Awaitable that yields None (placeholder in gather for missing ids)."""
+    return None
+
+
+def _parse_unit(raw: dict[str, Any]) -> MoIPUnit:
+    """Build a MoIPUnit from a raw /unit/{id} response."""
+    settings = raw.get("settings") or {}
+    status = raw.get("status") or {}
+    return MoIPUnit(
+        unit_id=int(raw["id"]),
+        name=settings.get("name") or f"Unit {raw['id']}",
+        model=status.get("model"),
+        mac=status.get("mac"),
+        state=status.get("unit_state"),
+        raw=raw,
+    )
+
+
+def _parse_zone(raw: dict[str, Any], units: dict[int, MoIPUnit]) -> MoIPZone:
+    """Build a MoIPZone from a raw /group_rx/{id} response."""
+    settings = raw.get("settings") or {}
+    assoc = raw.get("associations") or {}
+    status = raw.get("status") or {}
+    unit_id = _opt_int(assoc.get("unit"))
+    name = settings.get("name") or (
+        f"{units[unit_id].name} zone" if unit_id in units else f"Zone {raw['id']}"
+    )
+    return MoIPZone(
+        group_id=int(raw["id"]),
+        name=name,
+        unit_id=unit_id,
+        audio_rx_id=_opt_int(assoc.get("audio_rx")),
+        paired_tx_id=_opt_int(assoc.get("paired_tx")),
+        state=status.get("state"),
+        raw=raw,
+    )
+
+
+def _parse_source(raw: dict[str, Any], units: dict[int, MoIPUnit]) -> MoIPSource:
+    """Build a MoIPSource from a raw /group_tx/{id} response."""
+    settings = raw.get("settings") or {}
+    assoc = raw.get("associations") or {}
+    status = raw.get("status") or {}
+    unit_id = _opt_int(assoc.get("unit"))
+    return MoIPSource(
+        group_id=int(raw["id"]),
+        name=settings.get("name") or f"Source {raw['id']}",
+        unit_id=unit_id,
+        unit_name=units[unit_id].name if unit_id in units else None,
+        audio_tx_id=_opt_int(assoc.get("audio_tx")),
+        state=status.get("state"),
+        raw=raw,
+    )
+
+
+def _apply_audio_rx(zone: MoIPZone, raw: dict[str, Any] | None) -> None:
+    """Populate a zone's volume/mute/state from its backing audio_rx response."""
+    if not raw:
+        return
+    settings = raw.get("settings") or {}
+    status = raw.get("status") or {}
+    zone.volume = settings.get("volume")
+    zone.max_volume = settings.get("maxvolume")
+    rng = (settings.get("supported_volume") or {}).get("range")
+    if isinstance(rng, list) and len(rng) == 2:
+        zone.volume_range = (float(rng[0]), float(rng[1]))
+    zone.mute_ports = list(settings.get("supported_output") or [])
+    zone.muted = bool(settings.get("mute"))  # non-empty mute list = muted
+    if status.get("state"):
+        zone.state = status["state"]
+
+
+def _apply_audio_tx(source: MoIPSource, raw: dict[str, Any] | None) -> None:
+    """Populate a source's hardware label/input type from its audio_tx response."""
+    if not raw:
+        return
+    settings = raw.get("settings") or {}
+    source.hw_label = raw.get("label")
+    # Real firmware returns settings.source as a list of port(s) (e.g.
+    # ["toslink"]) even though the spec types it as a single AudioPort enum.
+    # Normalize to a single human-friendly string.
+    src = settings.get("source")
+    if isinstance(src, list):
+        src = next((p for p in src if p), None)
+    source.input_type = src
+
+
+def _opt_int(value: Any) -> int | None:
+    """Coerce an association id to int, treating null/empty as None."""
+    if value in (None, "", 0):
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
