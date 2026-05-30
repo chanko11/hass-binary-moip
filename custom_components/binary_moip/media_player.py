@@ -29,6 +29,7 @@ from .const import (
     OPT_LABEL,
     OPT_SOURCES,
     OPT_ZONES,
+    SOURCE_NONE,
     STATE_STREAMING,
     STATE_UNCONNECTED,
 )
@@ -189,11 +190,13 @@ class BinaryMoIPMediaPlayer(
 
     @property
     def state(self) -> MediaPlayerState:
-        """Map MoIP zone state to a media_player state."""
-        zone = self._zone
-        if zone.paired_tx_id is None:
-            return MediaPlayerState.OFF
-        if zone.state == STATE_STREAMING:
+        """Map MoIP zone state to a media_player state.
+
+        Never OFF: MoIP zones have no power concept, and HA hides the volume /
+        source controls for an "off" player. PLAYING when streaming, otherwise
+        IDLE — so the source dropdown and volume slider are always available.
+        """
+        if self._zone.state == STATE_STREAMING:
             return MediaPlayerState.PLAYING
         return MediaPlayerState.IDLE
 
@@ -214,24 +217,25 @@ class BinaryMoIPMediaPlayer(
         return self._zone.muted
 
     @property
-    def source(self) -> str | None:
-        """Friendly label of the currently routed source, if any."""
+    def source(self) -> str:
+        """Currently routed source label, or SOURCE_NONE when unpaired."""
         zone = self._zone
         if zone.paired_tx_id is None:
-            return None
+            return SOURCE_NONE
         labels, _ = _build_source_maps(self.coordinator.data, self._options)
-        return labels.get(zone.paired_tx_id)
+        return labels.get(zone.paired_tx_id, SOURCE_NONE)
 
     @property
     def source_list(self) -> list[str]:
-        """Selectable sources (enabled ones), as friendly labels."""
+        """Selectable sources (enabled ones) plus a "None" entry to unpair."""
         labels, _ = _build_source_maps(self.coordinator.data, self._options)
         source_opts = self._options.get(OPT_SOURCES, {})
-        return sorted(
+        enabled = sorted(
             label
             for sid, label in labels.items()
             if source_opts.get(str(sid), {}).get(OPT_ENABLED, True)
         )
+        return [SOURCE_NONE, *enabled]
 
     async def async_set_volume_level(self, volume: float) -> None:
         """Set volume (0.0–1.0)."""
@@ -244,10 +248,13 @@ class BinaryMoIPMediaPlayer(
         await self.coordinator.async_request_refresh()
 
     async def async_select_source(self, source: str) -> None:
-        """Route the named source to this zone."""
-        _, reverse = _build_source_maps(self.coordinator.data, self._options)
-        group_tx_id = reverse.get(source)
-        if group_tx_id is None:
-            raise ValueError(f"Unknown source: {source}")
+        """Route the named source to this zone, or unpair it for SOURCE_NONE."""
+        if source == SOURCE_NONE:
+            group_tx_id = None
+        else:
+            _, reverse = _build_source_maps(self.coordinator.data, self._options)
+            if source not in reverse:
+                raise ValueError(f"Unknown source: {source}")
+            group_tx_id = reverse[source]
         await self.coordinator.client.async_select_source(self._group_id, group_tx_id)
         await self.coordinator.async_request_refresh()

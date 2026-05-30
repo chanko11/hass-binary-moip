@@ -41,6 +41,9 @@ OPT_SOURCES: Final = "sources"
 OPT_ENABLED: Final = "enabled"
 OPT_LABEL: Final = "label"
 
+# Synthetic source-list entry that unpairs a zone (no source / silent).
+SOURCE_NONE: Final = "None"
+
 # MoIP State enum values (audio_rx / group status).
 STATE_UNCONNECTED: Final = "unconnected"
 STATE_STOPPED: Final = "stopped"
