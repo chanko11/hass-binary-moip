@@ -6,7 +6,10 @@ Uses the Binary MoIP REST API v1.3.0 ([API docs](https://help.snapone.com/moip-i
 
 ## Status
 
-**Early development.** Not ready for general use.
+**Pre-release (0.2.0).** Running on real hardware (see below) with ~99% test
+coverage, but not yet packaged for general use. Known limitation: no reauth
+flow — if the controller credentials become invalid, remove and re-add the
+integration to update them.
 
 ## Why this exists
 
