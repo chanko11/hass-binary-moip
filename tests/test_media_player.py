@@ -38,6 +38,28 @@ def test_source_label_uses_override_verbatim():
     assert mp._source_label(s, "My Sonos") == "My Sonos"
 
 
+def test_source_label_keeps_user_assigned_controller_name():
+    # A real controller name (not a TX-... default) wins over the synthesized
+    # unit/hw_label form, so "Record Player" stays "Record Player".
+    s = _src(name="Record Player", hw_label="Audio Input", unit_name="Record Player Transmitter", input_type="analog")
+    assert mp._source_label(s, None) == "Record Player"
+
+
+@pytest.mark.parametrize(
+    ("name", "is_default"),
+    [
+        ("TX-D46A9128261A-1", True),
+        ("tx-000fffa11beb", True),   # case-insensitive
+        ("", True),
+        (None, True),
+        ("Record Player", False),
+        ("C4 Streaming", False),
+    ],
+)
+def test_is_default_source_name(name, is_default):
+    assert mp._is_default_source_name(name) is is_default
+
+
 def test_source_label_combines_unit_hwlabel_and_input_type():
     s = _src(hw_label="Digital Input", unit_name="AV Rack", input_type="toslink")
     assert mp._source_label(s, None) == "AV Rack – Digital Input (toslink)"

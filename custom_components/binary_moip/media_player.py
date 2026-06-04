@@ -86,16 +86,28 @@ async def async_setup_entry(
     )
 
 
+def _is_default_source_name(name: str | None) -> bool:
+    """Whether a ``group_tx`` name is a controller default rather than user-set.
+
+    The controller auto-names transmitters ``TX-<mac/serial>[-<n>]`` (e.g.
+    ``TX-D46A9128261A-1``); those are useless as labels. Any other name is one
+    the user deliberately set on the controller (e.g. ``Record Player``).
+    """
+    return not name or name.upper().startswith("TX-")
+
+
 def _source_label(source: MoIPSource, override: str | None) -> str:
     """Build a human-friendly source label.
 
-    Uses the options-flow override if set; otherwise synthesizes from parent
-    unit + hardware label + input type, since controller source names are often
-    non-unique defaults (e.g. ``TX-...``). Uniqueness across sources is enforced
-    separately by :func:`_build_source_maps`.
+    Priority: options-flow override, then the controller's own source name when
+    it's a real (non-default) name, then a synthesized label from parent unit +
+    hardware label + input type (for the ``TX-...`` defaults). Uniqueness across
+    sources is enforced separately by :func:`_build_source_maps`.
     """
     if override:
         return override
+    if not _is_default_source_name(source.name):
+        return source.name
     base = source.hw_label or source.name
     label = f"{source.unit_name} – {base}" if source.unit_name else base
     if source.input_type and source.input_type.lower() not in label.lower():
