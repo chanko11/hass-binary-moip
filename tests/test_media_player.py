@@ -76,6 +76,20 @@ def test_source_label_falls_back_to_name_without_hwlabel_or_unit():
     assert mp._source_label(s, None) == "TX-9"
 
 
+# --- unique-id helpers ------------------------------------------------------
+
+
+def test_unique_id_helpers():
+    assert mp._zone_unique_id("e1", 11) == "e1_11"
+    assert mp._source_unique_id("e1", 41) == "e1_source_41"
+    # recover a zone group_rx id from its unique id
+    assert mp._zone_group_id("e1", "e1_11") == 11
+    # ...but not from a source unique id, a foreign entry, or a non-int suffix
+    assert mp._zone_group_id("e1", "e1_source_41") is None
+    assert mp._zone_group_id("e1", "other_5") is None
+    assert mp._zone_group_id("e1", "e1_abc") is None
+
+
 # --- _build_source_maps -----------------------------------------------------
 
 
