@@ -27,17 +27,24 @@ from homeassistant.components.media_player import (
     MediaPlayerEntityFeature,
     MediaPlayerState,
 )
-from homeassistant.core import HomeAssistant
+from homeassistant.const import (
+    ATTR_SUPPORTED_FEATURES,
+    STATE_UNAVAILABLE,
+    STATE_UNKNOWN,
+)
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import device_registry as dr, entity_registry as er
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
+from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .api import MoIPSource, MoIPTopology, MoIPZone
 from .const import (
     DOMAIN,
     MANUFACTURER,
+    OPT_BACKING,
     OPT_ENABLED,
     OPT_LABEL,
     OPT_SOURCES,
@@ -417,12 +424,16 @@ class BinaryMoIPSourceMediaPlayer(
     """A grouping-only media_player representing a single MoIP source (``group_tx``).
 
     Source-first session control: the source is the group leader, and joining a
-    zone to it routes that zone to the source. It has no transport or volume yet
-    (a later task) — only HA's GROUPING interface.
+    zone to it routes that zone to the source.
+
+    If a backing media_player is configured for this source (options flow), the
+    source also proxies transport (play/pause/stop/next/prev, seek if the backing
+    supports it) and mirrors its now-playing metadata + play state. Volume is
+    NOT proxied — there is no single source volume; volume lives per-zone. With
+    no backing player, the source is grouping-only.
     """
 
     _attr_has_entity_name = False
-    _attr_supported_features = SOURCE_SUPPORTED_FEATURES
 
     def __init__(
         self,
@@ -436,9 +447,25 @@ class BinaryMoIPSourceMediaPlayer(
         self._attr_unique_id = _source_unique_id(self._entry_id, group_tx_id)
 
     async def async_added_to_hass(self) -> None:
-        """Nudge peers to recompute group_members now that we're registered."""
+        """Register peers + (if configured) follow the backing player's state."""
         await super().async_added_to_hass()
+        # Nudge peers to recompute group_members now that we have an entity_id.
         self.coordinator.async_update_listeners()
+        # Reflect the backing player's transport/metadata changes live, without
+        # polling. This listener only writes our own state (never issues
+        # commands), so it can't feed back into the grouping/transport logic.
+        backing = self._backing_entity_id
+        if backing is not None:
+            self.async_on_remove(
+                async_track_state_change_event(
+                    self.hass, [backing], self._handle_backing_event
+                )
+            )
+
+    @callback
+    def _handle_backing_event(self, event) -> None:
+        """Re-render this source when its backing player changes."""
+        self.async_write_ha_state()
 
     @property
     def _source(self) -> MoIPSource:
@@ -448,6 +475,46 @@ class BinaryMoIPSourceMediaPlayer(
     @property
     def _options(self) -> dict:
         return self.coordinator.config_entry.options
+
+    @property
+    def _backing_entity_id(self) -> str | None:
+        """The configured backing media_player entity_id, if any."""
+        backing = (
+            self._options.get(OPT_SOURCES, {})
+            .get(str(self._group_tx_id), {})
+            .get(OPT_BACKING)
+        )
+        return backing or None
+
+    def _backing_state(self):
+        """The backing player's State object, or None if unset/unavailable."""
+        eid = self._backing_entity_id
+        return self.hass.states.get(eid) if eid else None
+
+    def _backing_attr(self, name: str):
+        """Read an attribute from the backing player's state, or None."""
+        state = self._backing_state()
+        return state.attributes.get(name) if state is not None else None
+
+    @property
+    def supported_features(self) -> MediaPlayerEntityFeature:
+        """GROUPING always; transport (and SEEK) when a backing player is set."""
+        features = SOURCE_SUPPORTED_FEATURES
+        if self._backing_entity_id is None:
+            return features
+        features |= (
+            MediaPlayerEntityFeature.PLAY
+            | MediaPlayerEntityFeature.PAUSE
+            | MediaPlayerEntityFeature.STOP
+            | MediaPlayerEntityFeature.NEXT_TRACK
+            | MediaPlayerEntityFeature.PREVIOUS_TRACK
+        )
+        state = self._backing_state()
+        if state is not None and (
+            state.attributes.get(ATTR_SUPPORTED_FEATURES, 0) & MediaPlayerEntityFeature.SEEK
+        ):
+            features |= MediaPlayerEntityFeature.SEEK
+        return features
 
     @property
     def available(self) -> bool:
@@ -481,11 +548,53 @@ class BinaryMoIPSourceMediaPlayer(
         )
 
     @property
-    def state(self) -> MediaPlayerState:
-        """PLAYING when the source is streaming, otherwise IDLE (no transport)."""
+    def state(self) -> MediaPlayerState | str:
+        """Backing player's state if usable, else derived from MoIP streaming.
+
+        Falls back to the grouping-only view (PLAYING when the MoIP source is
+        streaming, else IDLE) when there's no backing player or it's
+        unavailable, so the entity stays usable for grouping regardless.
+        """
+        backing = self._backing_state()
+        if backing is not None and backing.state not in (
+            STATE_UNAVAILABLE,
+            STATE_UNKNOWN,
+        ):
+            return backing.state
         if self._source.state == STATE_STREAMING:
             return MediaPlayerState.PLAYING
         return MediaPlayerState.IDLE
+
+    # --- now-playing metadata (proxied from the backing player) -------------
+
+    @property
+    def media_title(self) -> str | None:
+        return self._backing_attr("media_title")
+
+    @property
+    def media_artist(self) -> str | None:
+        return self._backing_attr("media_artist")
+
+    @property
+    def media_album_name(self) -> str | None:
+        return self._backing_attr("media_album_name")
+
+    @property
+    def media_position(self) -> int | None:
+        return self._backing_attr("media_position")
+
+    @property
+    def media_duration(self) -> int | None:
+        return self._backing_attr("media_duration")
+
+    @property
+    def media_position_updated_at(self):
+        return self._backing_attr("media_position_updated_at")
+
+    @property
+    def entity_picture(self) -> str | None:
+        """Proxy the backing player's artwork URL (None when no backing)."""
+        return self._backing_attr("entity_picture")
 
     # --- grouping (this source is the group leader) -------------------------
 
@@ -513,3 +622,37 @@ class BinaryMoIPSourceMediaPlayer(
         await _route_zone_entities(
             self.hass, self.coordinator, self._entry_id, members, None
         )
+
+    # --- transport (proxied to the backing player) --------------------------
+
+    async def _proxy(self, service: str, extra: dict | None = None) -> None:
+        """Forward a transport service call to the backing media_player."""
+        eid = self._backing_entity_id
+        if eid is None:
+            raise HomeAssistantError(
+                f"{self.name} has no backing media_player to control"
+            )
+        await self.hass.services.async_call(
+            MEDIA_PLAYER_DOMAIN,
+            service,
+            {"entity_id": eid, **(extra or {})},
+            blocking=True,
+        )
+
+    async def async_media_play(self) -> None:
+        await self._proxy("media_play")
+
+    async def async_media_pause(self) -> None:
+        await self._proxy("media_pause")
+
+    async def async_media_stop(self) -> None:
+        await self._proxy("media_stop")
+
+    async def async_media_next_track(self) -> None:
+        await self._proxy("media_next_track")
+
+    async def async_media_previous_track(self) -> None:
+        await self._proxy("media_previous_track")
+
+    async def async_media_seek(self, position: float) -> None:
+        await self._proxy("media_seek", {"seek_position": position})

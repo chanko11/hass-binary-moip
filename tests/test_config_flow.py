@@ -111,9 +111,23 @@ def test_unique_displays_appends_id_on_collision():
 
 def test_build_options_schema_keys_map_to_ids():
     items = [(11, "Kitchen")]
-    schema, enabled_keys, label_keys = cf._build_options_schema(items, {})
+    schema, enabled_keys, label_keys, backing_keys = cf._build_options_schema(items, {})
     assert enabled_keys == {"Kitchen": 11}
     assert label_keys == {"Kitchen — custom name": 11}
+    assert backing_keys == {}  # no backing field unless include_backing=True
+
+
+def test_build_options_schema_includes_backing_for_sources():
+    items = [(41, "Record Player")]
+    _, _, _, backing_keys = cf._build_options_schema(items, {}, include_backing=True)
+    assert backing_keys == {"Record Player — backing media_player": 41}
+
+
+def test_parse_options_stores_backing_entity():
+    backing_keys = {"Record Player — backing media_player": 41}
+    user_input = {"Record Player — backing media_player": "media_player.streaming_1"}
+    result = cf._parse_options(user_input, {}, {}, backing_keys)
+    assert result == {"41": {"backing_entity": "media_player.streaming_1"}}
 
 
 def test_parse_options_stores_only_non_defaults():

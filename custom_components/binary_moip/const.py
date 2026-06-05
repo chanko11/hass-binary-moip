@@ -35,11 +35,15 @@ API_AUDIO_RX: Final = "/api/v1/moip/audio_rx/{id}"
 # Options-flow keys. The integration discovers everything; HA is the
 # friendly-name + enable/disable layer. See docs/naming-and-discovery.md.
 #   options[OPT_ZONES][<group_rx id>]   = {"enabled": bool, "label": str}
-#   options[OPT_SOURCES][<group_tx id>] = {"enabled": bool, "label": str}
+#   options[OPT_SOURCES][<group_tx id>] = {"enabled": bool, "label": str,
+#                                          "backing_entity": str}
 OPT_ZONES: Final = "zones"
 OPT_SOURCES: Final = "sources"
 OPT_ENABLED: Final = "enabled"
 OPT_LABEL: Final = "label"
+# Optional per-source media_player entity_id whose transport + now-playing
+# metadata the source entity proxies (e.g. a Music Assistant squeezelite player).
+OPT_BACKING: Final = "backing_entity"
 
 # Synthetic source-list entry that unpairs a zone (no source / silent).
 SOURCE_NONE: Final = "None"

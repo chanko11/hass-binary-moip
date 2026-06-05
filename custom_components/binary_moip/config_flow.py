@@ -6,6 +6,7 @@ import logging
 from typing import Any
 
 import voluptuous as vol
+from homeassistant.components.media_player import DOMAIN as MEDIA_PLAYER_DOMAIN
 from homeassistant.config_entries import (
     ConfigEntry,
     ConfigFlow,
@@ -13,6 +14,7 @@ from homeassistant.config_entries import (
     OptionsFlow,
 )
 from homeassistant.core import callback
+from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import BinaryMoIPAuthError, BinaryMoIPClient, BinaryMoIPConnectionError
@@ -25,6 +27,7 @@ from .const import (
     DEFAULT_PORT,
     DEFAULT_VERIFY_SSL,
     DOMAIN,
+    OPT_BACKING,
     OPT_ENABLED,
     OPT_LABEL,
     OPT_SOURCES,
@@ -105,6 +108,7 @@ class BinaryMoIPConfigFlow(ConfigFlow, domain=DOMAIN):
 
 _ENABLED_SUFFIX = ""  # enabled checkbox keyed by the item's display name
 _LABEL_SUFFIX = " — custom name"
+_BACKING_SUFFIX = " — backing media_player"
 
 
 def _unique_displays(items: list[tuple[int, str]]) -> dict[int, str]:
@@ -119,18 +123,22 @@ def _unique_displays(items: list[tuple[int, str]]) -> dict[int, str]:
 
 
 def _build_options_schema(
-    items: list[tuple[int, str]], existing: dict
-) -> tuple[vol.Schema, dict[str, int], dict[str, int]]:
-    """Build a per-item enable+label schema.
+    items: list[tuple[int, str]], existing: dict, *, include_backing: bool = False
+) -> tuple[vol.Schema, dict[str, int], dict[str, int], dict[str, int]]:
+    """Build a per-item enable+label (+optional backing) schema.
 
-    Returns (schema, enabled_key->id, label_key->id). Each item gets an enabled
-    boolean (default True) keyed by its display name, and an optional free-text
-    label (default = current override) keyed by "<display> — custom name".
+    Returns (schema, enabled_key->id, label_key->id, backing_key->id). Each item
+    gets an enabled boolean (default True) keyed by its display name and an
+    optional free-text label keyed by "<display> — custom name". When
+    ``include_backing`` is set (sources only), each item also gets an optional
+    media_player entity picker keyed by "<display> — backing media_player".
+    ``backing_keys`` is empty when ``include_backing`` is False.
     """
     displays = _unique_displays(items)
     schema: dict = {}
     enabled_keys: dict[str, int] = {}
     label_keys: dict[str, int] = {}
+    backing_keys: dict[str, int] = {}
     for iid, _ in items:
         disp = displays[iid]
         cur = existing.get(str(iid), {})
@@ -140,16 +148,30 @@ def _build_options_schema(
         schema[vol.Optional(lkey, default=cur.get(OPT_LABEL, ""))] = str
         enabled_keys[ekey] = iid
         label_keys[lkey] = iid
-    return vol.Schema(schema), enabled_keys, label_keys
+        if include_backing:
+            bkey = f"{disp}{_BACKING_SUFFIX}"
+            # Optional entity picker; suggested_value pre-fills the current
+            # mapping without forcing a default (so it can be cleared).
+            schema[
+                vol.Optional(bkey, description={"suggested_value": cur.get(OPT_BACKING)})
+            ] = selector.EntitySelector(
+                selector.EntitySelectorConfig(domain=MEDIA_PLAYER_DOMAIN)
+            )
+            backing_keys[bkey] = iid
+    return vol.Schema(schema), enabled_keys, label_keys, backing_keys
 
 
 def _parse_options(
-    user_input: dict, enabled_keys: dict[str, int], label_keys: dict[str, int]
+    user_input: dict,
+    enabled_keys: dict[str, int],
+    label_keys: dict[str, int],
+    backing_keys: dict[str, int] | None = None,
 ) -> dict:
     """Fold submitted form values into the compact options map for a category.
 
     Only stores non-default values: ``enabled`` is omitted when True (the
-    default), ``label`` when blank — so an untouched system yields ``{}``.
+    default), ``label``/``backing_entity`` when blank — so an untouched system
+    yields ``{}``.
     """
     result: dict[str, dict] = {}
     for key, iid in enabled_keys.items():
@@ -159,6 +181,10 @@ def _parse_options(
         label = (user_input.get(key) or "").strip()
         if label:
             result.setdefault(str(iid), {})[OPT_LABEL] = label
+    for key, iid in (backing_keys or {}).items():
+        backing = (user_input.get(key) or "").strip()
+        if backing:
+            result.setdefault(str(iid), {})[OPT_BACKING] = backing
     return result
 
 
@@ -188,7 +214,7 @@ class BinaryMoIPOptionsFlow(OptionsFlow):
             key=lambda it: it[1].lower(),
         )
         existing = self.config_entry.options.get(OPT_ZONES, {})
-        schema, enabled_keys, label_keys = _build_options_schema(items, existing)
+        schema, enabled_keys, label_keys, _ = _build_options_schema(items, existing)
 
         if user_input is not None:
             new_map = _parse_options(user_input, enabled_keys, label_keys)
@@ -200,11 +226,12 @@ class BinaryMoIPOptionsFlow(OptionsFlow):
     async def async_step_sources(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Enable/disable and label sources (group_tx).
+        """Enable/disable, label, and optionally back each source (group_tx).
 
         Source rows use synthesized, unique display names (parent unit +
         hardware label + input type) since controller source names are often
-        non-unique defaults.
+        non-unique defaults. Each row also offers an optional backing
+        media_player whose transport + now-playing the source proxies.
         """
         coordinator = self.config_entry.runtime_data
         labels, _ = _build_source_maps(coordinator.data, {})  # synthesized names
@@ -213,10 +240,12 @@ class BinaryMoIPOptionsFlow(OptionsFlow):
             key=lambda it: it[1].lower(),
         )
         existing = self.config_entry.options.get(OPT_SOURCES, {})
-        schema, enabled_keys, label_keys = _build_options_schema(items, existing)
+        schema, enabled_keys, label_keys, backing_keys = _build_options_schema(
+            items, existing, include_backing=True
+        )
 
         if user_input is not None:
-            new_map = _parse_options(user_input, enabled_keys, label_keys)
+            new_map = _parse_options(user_input, enabled_keys, label_keys, backing_keys)
             options = {**self.config_entry.options, OPT_SOURCES: new_map}
             return self.async_create_entry(title="", data=options)
 
