@@ -21,7 +21,13 @@ from custom_components.binary_moip.api import (
     MoIPUnit,
     MoIPZone,
 )
-from custom_components.binary_moip.const import DOMAIN, MANUFACTURER, SOURCE_NONE
+from custom_components.binary_moip.const import (
+    ATTR_MOIP_ROLE,
+    DOMAIN,
+    MANUFACTURER,
+    ROLE_ZONE,
+    SOURCE_NONE,
+)
 
 
 # --- _source_label ----------------------------------------------------------
@@ -159,6 +165,12 @@ def test_unique_id_combines_entry_and_group():
     topo = MoIPTopology(zones={11: _zone()})
     ent, _ = _entity(topo)
     assert ent.unique_id == "e1_11"
+
+
+def test_zone_exposes_moip_role():
+    topo = MoIPTopology(zones={11: _zone()})
+    ent, _ = _entity(topo)
+    assert ent.extra_state_attributes[ATTR_MOIP_ROLE] == ROLE_ZONE
 
 
 @pytest.mark.parametrize(

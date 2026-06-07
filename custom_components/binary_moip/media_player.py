@@ -42,6 +42,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .api import MoIPSource, MoIPTopology, MoIPZone
 from .const import (
+    ATTR_MOIP_ROLE,
     DOMAIN,
     MANUFACTURER,
     OPT_BACKING,
@@ -49,6 +50,8 @@ from .const import (
     OPT_LABEL,
     OPT_SOURCES,
     OPT_ZONES,
+    ROLE_SOURCE,
+    ROLE_ZONE,
     SOURCE_NONE,
     STATE_STREAMING,
     STATE_UNCONNECTED,
@@ -250,6 +253,7 @@ class BinaryMoIPMediaPlayer(
     _attr_has_entity_name = False
     _attr_device_class = MediaPlayerDeviceClass.SPEAKER
     _attr_supported_features = ZONE_SUPPORTED_FEATURES
+    _attr_extra_state_attributes = {ATTR_MOIP_ROLE: ROLE_ZONE}
 
     def __init__(
         self,
@@ -434,6 +438,7 @@ class BinaryMoIPSourceMediaPlayer(
     """
 
     _attr_has_entity_name = False
+    _attr_extra_state_attributes = {ATTR_MOIP_ROLE: ROLE_SOURCE}
 
     def __init__(
         self,

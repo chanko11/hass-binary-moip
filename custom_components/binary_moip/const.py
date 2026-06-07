@@ -45,6 +45,14 @@ OPT_LABEL: Final = "label"
 # metadata the source entity proxies (e.g. a Music Assistant squeezelite player).
 OPT_BACKING: Final = "backing_entity"
 
+# media_player state attribute exposing this entity's MoIP role, so consumers
+# (the Lovelace card, automations, templates) can reliably tell outputs from
+# inputs. Home Assistant's media_player model has no native input/output
+# concept, so we surface it explicitly here.
+ATTR_MOIP_ROLE: Final = "moip_role"
+ROLE_ZONE: Final = "zone"  # a group_rx output (a room/zone)
+ROLE_SOURCE: Final = "source"  # a group_tx input (a feed/source)
+
 # Synthetic source-list entry that unpairs a zone (no source / silent).
 SOURCE_NONE: Final = "None"
 

@@ -19,7 +19,7 @@ from pytest_homeassistant_custom_component.common import (
 )
 
 from custom_components.binary_moip.api import MoIPSource, MoIPTopology, MoIPUnit, MoIPZone
-from custom_components.binary_moip.const import DOMAIN
+from custom_components.binary_moip.const import ATTR_MOIP_ROLE, DOMAIN, ROLE_SOURCE
 
 USER_INPUT = {"host": "ctrl.local", "port": 443, "username": "u", "password": "p", "verify_ssl": False}
 
@@ -95,6 +95,12 @@ async def test_plain_source_is_grouping_only(hass, enable_custom_integrations):
     _, eids = await _setup(hass)
     feats = hass.states.get(eids["plain"]).attributes["supported_features"]
     assert feats == F.GROUPING
+
+
+async def test_sources_expose_moip_role(hass, enable_custom_integrations):
+    _, eids = await _setup(hass)
+    for key in ("backed", "plain"):
+        assert hass.states.get(eids[key]).attributes[ATTR_MOIP_ROLE] == ROLE_SOURCE
 
 
 async def test_seek_added_only_when_backing_supports_it(hass, enable_custom_integrations):
