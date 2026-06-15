@@ -16,7 +16,10 @@ from .const import (
     DEFAULT_VERIFY_SSL,
     PLATFORMS,
 )
+from .const import DOMAIN
 from .coordinator import BinaryMoIPConfigEntry, BinaryMoIPDataUpdateCoordinator
+from .services import async_register_services, async_unregister_services
+from .spaces import SpaceManager
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: BinaryMoIPConfigEntry) -> bool:
@@ -37,6 +40,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: BinaryMoIPConfigEntry) -
 
     entry.runtime_data = coordinator
 
+    # Listening Spaces: load definitions + register playback services.
+    manager = SpaceManager(hass, coordinator)
+    await manager.async_load()
+    coordinator.space_manager = manager
+    async_register_services(hass)
+
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     # Real-time updates via the change-event websocket (polling is the fallback).
     coordinator.start_websocket()
@@ -54,4 +63,8 @@ async def _async_update_listener(
 
 async def async_unload_entry(hass: HomeAssistant, entry: BinaryMoIPConfigEntry) -> bool:
     """Unload a config entry."""
-    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    # Drop the Space services once the last binary_moip entry is gone.
+    if unloaded and len(hass.config_entries.async_loaded_entries(DOMAIN)) <= 1:
+        async_unregister_services(hass)
+    return unloaded

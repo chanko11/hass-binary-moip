@@ -74,3 +74,32 @@ FALLBACK_SCAN_INTERVAL: Final = timedelta(minutes=5)
 
 # Manufacturer string used for device registry entries.
 MANUFACTURER: Final = "Snap One"
+
+# --- Listening Spaces (docs/audio_spaces_spec_v1_0.md) -----------------------
+# A "Listening Space" is a named, calibrated group of zones (display term;
+# code identifiers stay `space`/`spaces`). Single constant for easy rename.
+SPACE_TERM: Final = "Listening Space"
+SPACE_TERM_PLURAL: Final = "Listening Spaces"
+
+# Dedicated Store helper (separate from config-entry options) for space
+# definitions + per-zone calibration anchors. Survives restart.
+SPACES_STORAGE_KEY: Final = "binary_moip_spaces"
+SPACES_STORAGE_VERSION: Final = 1
+
+# Calibration anchors (levels) + the abstract master scale (spec §5).
+LEVEL_BACKGROUND: Final = "background"
+LEVEL_LISTENING: Final = "listening"
+LEVEL_PARTY: Final = "party"
+LEVELS: Final = (LEVEL_BACKGROUND, LEVEL_LISTENING, LEVEL_PARTY)
+MASTER_MIN: Final = 0.0
+MASTER_MAX: Final = 100.0
+# Default master-scale positions of the three anchors (overridable per space).
+DEFAULT_MASTER_POSITIONS: Final = {
+    LEVEL_BACKGROUND: 20.0,
+    LEVEL_LISTENING: 50.0,
+    LEVEL_PARTY: 85.0,
+}
+
+# Zone driver types (how power/input/volume are realized; routing is always MoIP).
+DRIVER_MOIP: Final = "moip"  # set volume on the MoIP controller (default)
+DRIVER_DEVICE: Final = "device"  # delegate to a downstream media_player (e.g. AVR)

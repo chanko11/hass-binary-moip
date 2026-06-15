@@ -355,10 +355,18 @@ class BinaryMoIPClient:
         Scales into the zone's ``volume_range`` (clamped by ``max_volume``) and
         PUTs ``settings.volume`` on the backing ``audio_rx``.
         """
+        lo, hi = zone.volume_range or (0.0, 100.0)
+        await self.async_set_volume_native(zone, lo + max(0.0, min(1.0, volume)) * (hi - lo))
+
+    async def async_set_volume_native(self, zone: MoIPZone, value: float) -> None:
+        """Set a zone's volume in NATIVE controller units (the ``volume_range``
+        scale), clamped to that range and ``max_volume``. Used by Listening
+        Space interpolation, which works in native units (spec §3).
+        """
         if zone.audio_rx_id is None:
             raise BinaryMoIPError(f"Zone {zone.group_id} has no audio_rx to set volume")
         lo, hi = zone.volume_range or (0.0, 100.0)
-        target = lo + max(0.0, min(1.0, volume)) * (hi - lo)
+        target = max(lo, min(hi, value))
         if zone.max_volume is not None:
             target = min(target, zone.max_volume)
         await self._request(

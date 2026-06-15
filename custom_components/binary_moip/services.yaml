@@ -1,0 +1,87 @@
+space_activate:
+  name: Activate Listening Space
+  description: >-
+    Route a source to a Listening Space's zones and turn it on at a level (or an
+    explicit master position), balanced per calibration.
+  fields:
+    space:
+      name: Space
+      description: Listening Space id.
+      required: true
+      example: pool_outdoor
+      selector:
+        text:
+    level:
+      name: Level
+      description: Preset level to start at (background / listening / party).
+      example: listening
+      selector:
+        select:
+          options:
+            - background
+            - listening
+            - party
+    master:
+      name: Master
+      description: Explicit master position 0–100 (alternative to level).
+      example: 50
+      selector:
+        number:
+          min: 0
+          max: 100
+          mode: slider
+    source:
+      name: Source
+      description: Source media_player entity_id (or MoIP source id) to route.
+      example: media_player.ha_streaming_1
+      selector:
+        text:
+
+space_deactivate:
+  name: Deactivate Listening Space
+  description: Turn a Listening Space off (unroute its zones; smart power-off of devices).
+  fields:
+    space:
+      name: Space
+      description: Listening Space id.
+      required: true
+      selector:
+        text:
+
+space_set_master:
+  name: Set Listening Space master
+  description: Move a Space's master position; all zones rebalance by interpolation.
+  fields:
+    space:
+      name: Space
+      required: true
+      selector:
+        text:
+    master:
+      name: Master
+      description: Master position 0–100.
+      required: true
+      selector:
+        number:
+          min: 0
+          max: 100
+          mode: slider
+
+space_set_level:
+  name: Set Listening Space level
+  description: Jump a Space's master to a preset level.
+  fields:
+    space:
+      name: Space
+      required: true
+      selector:
+        text:
+    level:
+      name: Level
+      required: true
+      selector:
+        select:
+          options:
+            - background
+            - listening
+            - party
