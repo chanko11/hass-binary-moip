@@ -94,6 +94,42 @@ async def test_overlap_disallowed_steals_zone(hass):
     assert awaited_zones == {11}
 
 
+async def test_set_anchor_explicit_value_and_clear(hass):
+    z1 = _zone(11)
+    coord = _coordinator(z1)
+    mgr = SpaceManager(hass, coord)
+    mgr.spaces["s1"] = Space(id="s1", name="S1", zones=[11], levels={})
+
+    stored = await mgr.async_set_anchor("s1", 11, "background", value=18.0)
+    assert stored == 18.0
+    assert mgr.spaces["s1"].levels["background"][11] == 18.0
+
+    await mgr.async_clear_anchor("s1", 11, "background")
+    assert 11 not in mgr.spaces["s1"].levels.get("background", {})
+
+
+async def test_set_anchor_snapshots_current_native(hass):
+    z1 = _zone(11)
+    z1.volume = 27.0  # current live native volume
+    coord = _coordinator(z1)
+    mgr = SpaceManager(hass, coord)
+    mgr.spaces["s1"] = Space(id="s1", name="S1", zones=[11], levels={})
+
+    stored = await mgr.async_set_anchor("s1", 11, "party")  # no value -> snapshot
+    assert stored == 27.0
+    assert mgr.spaces["s1"].levels["party"][11] == 27.0
+
+
+async def test_set_anchor_rejects_zone_not_in_space(hass):
+    coord = _coordinator(_zone(11))
+    mgr = SpaceManager(hass, coord)
+    mgr.spaces["s1"] = Space(id="s1", name="S1", zones=[11], levels={})
+    import pytest
+
+    with pytest.raises(ValueError):
+        await mgr.async_set_anchor("s1", 99, "listening", value=10)
+
+
 async def test_deactivate_unroutes_and_releases(hass):
     z1 = _zone(11)
     coord = _coordinator(z1)

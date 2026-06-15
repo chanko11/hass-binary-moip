@@ -285,3 +285,31 @@ class SpaceManager:
             await self.async_set_master(space_id, pos)
         else:
             await self.async_activate(space_id, level=level)
+
+    # --- calibration API (spec §6) ------------------------------------------
+
+    async def async_set_anchor(
+        self, space_id: str, zone: int, level: str, value: float | None = None
+    ) -> float:
+        """Save a zone's calibration anchor for a level. With no value, snapshot
+        the zone's *current live* native volume (the calibration-by-ear flow).
+        Persists to the Store. Returns the stored value.
+        """
+        space = self.get_space(space_id)
+        if level not in LEVELS:
+            raise ValueError(f"Unknown level '{level}'")
+        if zone not in space.zones:
+            raise ValueError(f"Zone {zone} is not in Listening Space '{space_id}'")
+        if value is None:
+            value = self._driver(zone).current_native()
+            if value is None:
+                raise RuntimeError(f"No current volume to snapshot for zone {zone}")
+        space.levels.setdefault(level, {})[zone] = float(value)
+        await self.async_save_anchors()
+        return float(value)
+
+    async def async_clear_anchor(self, space_id: str, zone: int, level: str) -> None:
+        """Remove a zone's anchor for a level (re-calibration). Persists."""
+        space = self.get_space(space_id)
+        space.levels.get(level, {}).pop(zone, None)
+        await self.async_save_anchors()

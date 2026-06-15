@@ -85,3 +85,64 @@ space_set_level:
             - background
             - listening
             - party
+
+calibration_set_anchor:
+  name: Calibrate — set anchor
+  description: >-
+    Save a zone's calibrated volume for a level. Omit value to snapshot the
+    zone's current live volume (the calibrate-by-ear flow).
+  fields:
+    space:
+      name: Space
+      required: true
+      selector:
+        text:
+    zone:
+      name: Zone (group_rx id)
+      required: true
+      selector:
+        number:
+          min: 0
+          mode: box
+    level:
+      name: Level
+      required: true
+      selector:
+        select:
+          options:
+            - background
+            - listening
+            - party
+    value:
+      name: Value (native units)
+      description: Optional. If omitted, the zone's current live volume is captured.
+      selector:
+        number:
+          min: 0
+          mode: box
+
+calibration_clear_anchor:
+  name: Calibrate — clear anchor
+  description: Remove a zone's calibrated value for a level (to re-calibrate).
+  fields:
+    space:
+      name: Space
+      required: true
+      selector:
+        text:
+    zone:
+      name: Zone (group_rx id)
+      required: true
+      selector:
+        number:
+          min: 0
+          mode: box
+    level:
+      name: Level
+      required: true
+      selector:
+        select:
+          options:
+            - background
+            - listening
+            - party

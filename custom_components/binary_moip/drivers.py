@@ -57,6 +57,12 @@ class ZoneDriver(ABC):
     def bounds(self) -> tuple[float | None, float | None]:
         """Native (min, max) for clamping interpolation results."""
 
+    @abstractmethod
+    def current_native(self) -> float | None:
+        """The zone's current live volume in native units (for snapshotting an
+        anchor during calibration). None if unknown.
+        """
+
 
 class MoipDriver(ZoneDriver):
     """Volume on the MoIP controller (current behavior). Routing/power are the
@@ -96,6 +102,10 @@ class MoipDriver(ZoneDriver):
         if zone.max_volume is not None:
             hi = min(hi, zone.max_volume)
         return (lo, hi)
+
+    def current_native(self) -> float | None:
+        zone = self._zone
+        return None if zone is None else zone.volume
 
 
 class DeviceDriver(ZoneDriver):
@@ -157,6 +167,13 @@ class DeviceDriver(ZoneDriver):
     @property
     def bounds(self) -> tuple[float | None, float | None]:
         return (self._min, self._max)
+
+    def current_native(self) -> float | None:
+        st = self._hass.states.get(self._volume_entity)
+        if st is None:
+            return None
+        level = st.attributes.get("volume_level")
+        return None if level is None else float(level)
 
 
 def build_driver(

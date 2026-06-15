@@ -18,6 +18,8 @@ SERVICE_SPACE_ACTIVATE = "space_activate"
 SERVICE_SPACE_DEACTIVATE = "space_deactivate"
 SERVICE_SPACE_SET_MASTER = "space_set_master"
 SERVICE_SPACE_SET_LEVEL = "space_set_level"
+SERVICE_CALIBRATION_SET_ANCHOR = "calibration_set_anchor"
+SERVICE_CALIBRATION_CLEAR_ANCHOR = "calibration_clear_anchor"
 
 _SPACE = vol.Required("space")
 
@@ -41,12 +43,29 @@ SET_MASTER_SCHEMA = vol.Schema(
     }
 )
 SET_LEVEL_SCHEMA = vol.Schema({_SPACE: cv.string, vol.Required("level"): vol.In(LEVELS)})
+SET_ANCHOR_SCHEMA = vol.Schema(
+    {
+        _SPACE: cv.string,
+        vol.Required("zone"): vol.Coerce(int),
+        vol.Required("level"): vol.In(LEVELS),
+        vol.Optional("value"): vol.Coerce(float),
+    }
+)
+CLEAR_ANCHOR_SCHEMA = vol.Schema(
+    {
+        _SPACE: cv.string,
+        vol.Required("zone"): vol.Coerce(int),
+        vol.Required("level"): vol.In(LEVELS),
+    }
+)
 
 _SERVICES = (
     SERVICE_SPACE_ACTIVATE,
     SERVICE_SPACE_DEACTIVATE,
     SERVICE_SPACE_SET_MASTER,
     SERVICE_SPACE_SET_LEVEL,
+    SERVICE_CALIBRATION_SET_ANCHOR,
+    SERVICE_CALIBRATION_CLEAR_ANCHOR,
 )
 
 
@@ -82,10 +101,26 @@ def async_register_services(hass: HomeAssistant) -> None:
     async def _set_level(call: ServiceCall) -> None:
         await _manager(hass).async_set_level(call.data["space"], call.data["level"])
 
+    async def _set_anchor(call: ServiceCall) -> None:
+        await _manager(hass).async_set_anchor(
+            call.data["space"], call.data["zone"], call.data["level"], call.data.get("value")
+        )
+
+    async def _clear_anchor(call: ServiceCall) -> None:
+        await _manager(hass).async_clear_anchor(
+            call.data["space"], call.data["zone"], call.data["level"]
+        )
+
     hass.services.async_register(DOMAIN, SERVICE_SPACE_ACTIVATE, _activate, schema=ACTIVATE_SCHEMA)
     hass.services.async_register(DOMAIN, SERVICE_SPACE_DEACTIVATE, _deactivate, schema=DEACTIVATE_SCHEMA)
     hass.services.async_register(DOMAIN, SERVICE_SPACE_SET_MASTER, _set_master, schema=SET_MASTER_SCHEMA)
     hass.services.async_register(DOMAIN, SERVICE_SPACE_SET_LEVEL, _set_level, schema=SET_LEVEL_SCHEMA)
+    hass.services.async_register(
+        DOMAIN, SERVICE_CALIBRATION_SET_ANCHOR, _set_anchor, schema=SET_ANCHOR_SCHEMA
+    )
+    hass.services.async_register(
+        DOMAIN, SERVICE_CALIBRATION_CLEAR_ANCHOR, _clear_anchor, schema=CLEAR_ANCHOR_SCHEMA
+    )
 
 
 def async_unregister_services(hass: HomeAssistant) -> None:
