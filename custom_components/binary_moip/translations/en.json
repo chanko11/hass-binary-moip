@@ -28,7 +28,8 @@
         "title": "Binary MoIP options",
         "menu_options": {
           "zones": "Zones",
-          "sources": "Sources"
+          "sources": "Sources",
+          "spaces": "Listening Spaces"
         }
       },
       "zones": {
@@ -38,6 +39,29 @@
       "sources": {
         "title": "Sources",
         "description": "Uncheck a source to hide it from the source list; type a custom name to rename it. Blank keeps the synthesized name."
+      },
+      "spaces": {
+        "title": "Listening Spaces",
+        "description": "Pick a Listening Space to edit, add a new one, or save & finish. Zones not in any space: {unassigned}.",
+        "data": {
+          "space": "Listening Space"
+        }
+      },
+      "space_new": {
+        "title": "Add a Listening Space",
+        "description": "Name the new Listening Space (e.g. Pool & Outdoor).",
+        "data": {
+          "name": "Name"
+        }
+      },
+      "space_edit": {
+        "title": "Edit Listening Space",
+        "description": "Rename {space}, choose its member zones, or delete it. Volume levels are set later in the calibration tool.",
+        "data": {
+          "name": "Name",
+          "zones": "Zones in this space",
+          "delete": "Delete this space"
+        }
       }
     }
   }

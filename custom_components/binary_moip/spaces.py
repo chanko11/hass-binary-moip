@@ -21,6 +21,9 @@ from .const import (
     LEVELS,
     MASTER_MAX,
     MASTER_MIN,
+    OPT_SPACES,
+    OPT_ZONE_CONFIGS,
+    ROUTING_MOIP,
     SPACES_STORAGE_KEY,
     SPACES_STORAGE_VERSION,
 )
@@ -108,7 +111,8 @@ class SpaceManager:
         self.coordinator = coordinator
         self._store: Store = Store(hass, SPACES_STORAGE_VERSION, SPACES_STORAGE_KEY)
         self.spaces: dict[str, Space] = {}
-        self.zone_driver_configs: dict[int, dict] = {}
+        # Per-zone {routing, driver{...}} structural config (from options).
+        self.zone_configs: dict[int, dict] = {}
         self._drivers: dict[int, ZoneDriver] = {}
         # Runtime
         self.active: dict[str, RuntimeState] = {}
@@ -117,19 +121,38 @@ class SpaceManager:
     # --- storage -------------------------------------------------------------
 
     async def async_load(self) -> None:
-        data = await self._store.async_load() or {}
-        self.spaces = {
-            s["id"]: Space.from_dict(s) for s in data.get("spaces", [])
+        """Load structural config from config-entry options and calibration
+        anchor VALUES from the dedicated Store, merged into Space objects.
+        """
+        options = getattr(self.coordinator.config_entry, "options", {}) or {}
+        self.zone_configs = {
+            int(gid): cfg for gid, cfg in (options.get(OPT_ZONE_CONFIGS) or {}).items()
         }
-        self.zone_driver_configs = {
-            int(gid): cfg for gid, cfg in (data.get("zone_drivers") or {}).items()
-        }
+        store = await self._store.async_load() or {}
+        anchors = store.get("anchors", {})  # {space_id: {level: {gid_str: value}}}
 
-    async def async_save(self) -> None:
+        self.spaces = {}
+        for struct in options.get(OPT_SPACES) or []:
+            space = Space.from_dict(struct)  # name/zones/positions (no anchors here)
+            sa = anchors.get(space.id, {})
+            space.levels = {
+                lvl: {int(g): float(v) for g, v in (sa.get(lvl) or {}).items()}
+                for lvl in LEVELS
+            }
+            self.spaces[space.id] = space
+        self._drivers.clear()
+
+    async def async_save_anchors(self) -> None:
+        """Persist calibration anchor values to the Store (used by Phase 2)."""
         await self._store.async_save(
             {
-                "spaces": [s.to_dict() for s in self.spaces.values()],
-                "zone_drivers": {str(g): c for g, c in self.zone_driver_configs.items()},
+                "anchors": {
+                    sid: {
+                        lvl: {str(g): v for g, v in s.levels.get(lvl, {}).items()}
+                        for lvl in LEVELS
+                    }
+                    for sid, s in self.spaces.items()
+                }
             }
         )
 
@@ -137,10 +160,15 @@ class SpaceManager:
 
     def _driver(self, gid: int) -> ZoneDriver:
         if gid not in self._drivers:
+            cfg = self.zone_configs.get(gid) or {}
             self._drivers[gid] = build_driver(
-                self.hass, self.coordinator, gid, self.zone_driver_configs.get(gid)
+                self.hass, self.coordinator, gid, cfg.get("driver")
             )
         return self._drivers[gid]
+
+    def _zone_routing(self, gid: int) -> str:
+        """How this zone gets its audio: ``moip`` (default) or ``device``."""
+        return (self.zone_configs.get(gid) or {}).get("routing", ROUTING_MOIP)
 
     def get_space(self, space_id: str) -> Space:
         space = self.spaces.get(space_id)
@@ -213,7 +241,9 @@ class SpaceManager:
             self.zone_owner[gid] = space_id
 
         for gid in space.zones:
-            if tx_id is not None:
+            # MoIP-routed zones get the source via the controller; device-routed
+            # zones source their own content (handled by their driver).
+            if tx_id is not None and self._zone_routing(gid) == ROUTING_MOIP:
                 await self._route(gid, tx_id)
             await self._driver(gid).activate()
 
@@ -230,7 +260,8 @@ class SpaceManager:
                 continue
             driver = self._driver(gid)
             await driver.deactivate()
-            await self._route(gid, None)  # unpair the MoIP route
+            if self._zone_routing(gid) == ROUTING_MOIP:
+                await self._route(gid, None)  # unpair the MoIP route
             self.zone_owner.pop(gid, None)
         self.active.pop(space_id, None)
         await self.coordinator.async_request_refresh()

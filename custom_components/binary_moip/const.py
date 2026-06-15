@@ -100,6 +100,16 @@ DEFAULT_MASTER_POSITIONS: Final = {
     LEVEL_PARTY: 85.0,
 }
 
-# Zone driver types (how power/input/volume are realized; routing is always MoIP).
+# Zone control driver (how power/input/volume are realized).
 DRIVER_MOIP: Final = "moip"  # set volume on the MoIP controller (default)
 DRIVER_DEVICE: Final = "device"  # delegate to a downstream media_player (e.g. AVR)
+
+# Zone routing axis (how the source's audio reaches the zone). Independent of the
+# control driver: a MoIP-fed AVR is routing=moip + driver=device. Default moip.
+ROUTING_MOIP: Final = "moip"  # MoIP controller routes the source (paired_tx)
+ROUTING_DEVICE: Final = "device"  # the device sources its own content (non-MoIP)
+
+# config-entry options keys for Listening Spaces structural config (authored by
+# the options flow). Calibration anchor VALUES live in the dedicated Store.
+OPT_SPACES: Final = "spaces"  # list of {id, name, zones, master_positions}
+OPT_ZONE_CONFIGS: Final = "zone_configs"  # {group_id: {routing, driver{...}}}

@@ -22,6 +22,7 @@ from custom_components.binary_moip.const import (
     DOMAIN,
     OPT_ENABLED,
     OPT_LABEL,
+    OPT_SPACES,
     OPT_ZONES,
 )
 
@@ -204,3 +205,66 @@ async def test_options_flow_sources_step_saves_label(hass, enable_custom_integra
     )
     assert result3["type"] == FlowResultType.CREATE_ENTRY
     assert result3["data"]["sources"] == {"41": {OPT_LABEL: "Apple TV"}}
+
+
+async def test_options_flow_create_space_and_assign_zones(hass, enable_custom_integrations):
+    entry = MockConfigEntry(domain=DOMAIN, data=USER_INPUT)
+    entry.add_to_hass(hass)
+    entry.runtime_data = SimpleNamespace(
+        data=MoIPTopology(
+            zones={
+                11: MoIPZone(group_id=11, name="Pool"),
+                12: MoIPZone(group_id=12, name="Outdoor Seating"),
+            },
+            sources={41: MoIPSource(group_id=41, name="TX-1")},
+        )
+    )
+
+    flow = hass.config_entries.options
+    result = await flow.async_init(entry.entry_id)
+    fid = result["flow_id"]
+
+    r = await flow.async_configure(fid, {"next_step_id": "spaces"})
+    assert r["step_id"] == "spaces"
+    r = await flow.async_configure(fid, {"space": cf.BinaryMoIPOptionsFlow._NEW})
+    assert r["step_id"] == "space_new"
+    r = await flow.async_configure(fid, {"name": "Pool & Outdoor"})
+    assert r["step_id"] == "space_edit"
+    r = await flow.async_configure(
+        fid, {"name": "Pool & Outdoor", "zones": ["11", "12"], "delete": False}
+    )
+    assert r["step_id"] == "spaces"  # back to the list
+    r = await flow.async_configure(fid, {"space": cf.BinaryMoIPOptionsFlow._DONE})
+
+    assert r["type"] == FlowResultType.CREATE_ENTRY
+    spaces = r["data"][OPT_SPACES]
+    assert len(spaces) == 1
+    assert spaces[0]["name"] == "Pool & Outdoor"
+    assert spaces[0]["id"] == "pool_outdoor"
+    assert spaces[0]["zones"] == [11, 12]
+
+
+async def test_options_flow_delete_space(hass, enable_custom_integrations):
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data=USER_INPUT,
+        options={OPT_SPACES: [{"id": "gym", "name": "Gym", "zones": [11]}]},
+    )
+    entry.add_to_hass(hass)
+    entry.runtime_data = SimpleNamespace(
+        data=MoIPTopology(
+            zones={11: MoIPZone(group_id=11, name="Workout")},
+            sources={41: MoIPSource(group_id=41, name="TX-1")},
+        )
+    )
+
+    flow = hass.config_entries.options
+    result = await flow.async_init(entry.entry_id)
+    fid = result["flow_id"]
+    await flow.async_configure(fid, {"next_step_id": "spaces"})
+    r = await flow.async_configure(fid, {"space": "gym"})
+    assert r["step_id"] == "space_edit"
+    r = await flow.async_configure(fid, {"name": "Gym", "zones": ["11"], "delete": True})
+    r = await flow.async_configure(fid, {"space": cf.BinaryMoIPOptionsFlow._DONE})
+    assert r["type"] == FlowResultType.CREATE_ENTRY
+    assert r["data"][OPT_SPACES] == []

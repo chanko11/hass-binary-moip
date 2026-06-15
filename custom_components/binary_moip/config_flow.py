@@ -16,6 +16,7 @@ from homeassistant.config_entries import (
 from homeassistant.core import callback
 from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.util import slugify
 
 from .api import BinaryMoIPAuthError, BinaryMoIPClient, BinaryMoIPConnectionError
 from .const import (
@@ -24,6 +25,7 @@ from .const import (
     CONF_PORT,
     CONF_USERNAME,
     CONF_VERIFY_SSL,
+    DEFAULT_MASTER_POSITIONS,
     DEFAULT_PORT,
     DEFAULT_VERIFY_SSL,
     DOMAIN,
@@ -31,7 +33,9 @@ from .const import (
     OPT_ENABLED,
     OPT_LABEL,
     OPT_SOURCES,
+    OPT_SPACES,
     OPT_ZONES,
+    SPACE_TERM,
 )
 from .media_player import _build_source_maps
 
@@ -201,8 +205,142 @@ class BinaryMoIPOptionsFlow(OptionsFlow):
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Top-level menu: choose to configure zones or sources."""
-        return self.async_show_menu(step_id="init", menu_options=["zones", "sources"])
+        """Top-level menu: choose what to configure."""
+        return self.async_show_menu(
+            step_id="init", menu_options=["zones", "sources", "spaces"]
+        )
+
+    # --- Listening Spaces ----------------------------------------------------
+
+    _NEW = "__new__"
+    _DONE = "__done__"
+
+    def _zone_display_items(self) -> list[tuple[int, str]]:
+        """(group_id, display name) for all zones, applying label overrides."""
+        coordinator = self.config_entry.runtime_data
+        overrides = self.config_entry.options.get(OPT_ZONES, {})
+        items = [
+            (z.group_id, overrides.get(str(z.group_id), {}).get(OPT_LABEL) or z.name)
+            for z in coordinator.data.zones.values()
+        ]
+        return sorted(items, key=lambda it: it[1].lower())
+
+    def _load_spaces_working_copy(self) -> None:
+        if getattr(self, "_spaces", None) is None:
+            self._spaces: dict[str, dict] = {
+                s["id"]: {
+                    "id": s["id"],
+                    "name": s.get("name", s["id"]),
+                    "zones": [int(z) for z in s.get("zones", [])],
+                    "master_positions": s.get("master_positions")
+                    or dict(DEFAULT_MASTER_POSITIONS),
+                }
+                for s in self.config_entry.options.get(OPT_SPACES, [])
+            }
+
+    async def async_step_spaces(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Pick a Listening Space to edit, add a new one, or save & finish."""
+        self._load_spaces_working_copy()
+
+        if user_input is not None:
+            choice = user_input["space"]
+            if choice == self._DONE:
+                options = {
+                    **self.config_entry.options,
+                    OPT_SPACES: list(self._spaces.values()),
+                }
+                return self.async_create_entry(title="", data=options)
+            if choice == self._NEW:
+                return await self.async_step_space_new()
+            self._editing = choice
+            return await self.async_step_space_edit()
+
+        options = [{"value": sid, "label": s["name"]} for sid, s in self._spaces.items()]
+        options.append({"value": self._NEW, "label": f"➕ Add a {SPACE_TERM}"})
+        options.append({"value": self._DONE, "label": "✓ Save & finish"})
+        # Soft notice: zones not in any space (informational, not a block).
+        assigned = {g for s in self._spaces.values() for g in s["zones"]}
+        unassigned = [n for g, n in self._zone_display_items() if g not in assigned]
+        schema = vol.Schema(
+            {
+                vol.Required("space"): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=options, mode=selector.SelectSelectorMode.LIST
+                    )
+                )
+            }
+        )
+        return self.async_show_form(
+            step_id="spaces",
+            data_schema=schema,
+            description_placeholders={
+                "unassigned": ", ".join(unassigned) if unassigned else "none"
+            },
+        )
+
+    async def async_step_space_new(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Name a new Listening Space, then edit its zones."""
+        self._load_spaces_working_copy()
+        if user_input is not None:
+            name = user_input["name"].strip()
+            base = slugify(name) or "space"
+            sid = base
+            i = 2
+            while sid in self._spaces:
+                sid = f"{base}_{i}"
+                i += 1
+            self._spaces[sid] = {
+                "id": sid,
+                "name": name,
+                "zones": [],
+                "master_positions": dict(DEFAULT_MASTER_POSITIONS),
+            }
+            self._editing = sid
+            return await self.async_step_space_edit()
+        return self.async_show_form(
+            step_id="space_new", data_schema=vol.Schema({vol.Required("name"): str})
+        )
+
+    async def async_step_space_edit(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Rename / set member zones / delete a Listening Space."""
+        space = self._spaces[self._editing]
+        if user_input is not None:
+            if user_input.get("delete"):
+                self._spaces.pop(self._editing, None)
+            else:
+                space["name"] = (user_input.get("name") or space["name"]).strip()
+                space["zones"] = [int(z) for z in user_input.get("zones", [])]
+            return await self.async_step_spaces()
+
+        zone_options = [
+            {"value": str(gid), "label": name} for gid, name in self._zone_display_items()
+        ]
+        schema = vol.Schema(
+            {
+                vol.Required("name", default=space["name"]): str,
+                vol.Optional(
+                    "zones", default=[str(z) for z in space["zones"]]
+                ): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=zone_options,
+                        multiple=True,
+                        mode=selector.SelectSelectorMode.LIST,
+                    )
+                ),
+                vol.Optional("delete", default=False): bool,
+            }
+        )
+        return self.async_show_form(
+            step_id="space_edit",
+            data_schema=schema,
+            description_placeholders={"space": space["name"]},
+        )
 
     async def async_step_zones(
         self, user_input: dict[str, Any] | None = None
