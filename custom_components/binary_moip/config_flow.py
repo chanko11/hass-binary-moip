@@ -23,6 +23,9 @@ from .const import (
     CONF_HOST,
     CONF_PASSWORD,
     CONF_PORT,
+    CONF_PINK_MEDIA,
+    CONF_PINK_PLAYER,
+    CONF_PINK_TYPE,
     CONF_USERNAME,
     CONF_VERIFY_SSL,
     DEFAULT_MASTER_POSITIONS,
@@ -30,6 +33,7 @@ from .const import (
     DEFAULT_VERIFY_SSL,
     DOMAIN,
     OPT_BACKING,
+    OPT_CALIBRATION,
     OPT_ENABLED,
     OPT_LABEL,
     OPT_SOURCES,
@@ -207,8 +211,43 @@ class BinaryMoIPOptionsFlow(OptionsFlow):
     ) -> ConfigFlowResult:
         """Top-level menu: choose what to configure."""
         return self.async_show_menu(
-            step_id="init", menu_options=["zones", "sources", "spaces"]
+            step_id="init", menu_options=["zones", "sources", "spaces", "calibration"]
         )
+
+    async def async_step_calibration(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Pick the pink-noise reference (a media item + its player) for the
+        calibration tool. Optional — calibration also works with any source.
+        """
+        current = self.config_entry.options.get(OPT_CALIBRATION, {})
+        if user_input is not None:
+            media = user_input.get("pink")
+            calibration = {}
+            if media and media.get("media_content_id"):
+                calibration = {
+                    CONF_PINK_PLAYER: media.get("entity_id"),
+                    CONF_PINK_MEDIA: media.get("media_content_id"),
+                    CONF_PINK_TYPE: media.get("media_content_type"),
+                }
+            options = {**self.config_entry.options, OPT_CALIBRATION: calibration}
+            return self.async_create_entry(title="", data=options)
+
+        suggested = None
+        if current.get(CONF_PINK_MEDIA):
+            suggested = {
+                "entity_id": current.get(CONF_PINK_PLAYER),
+                "media_content_id": current.get(CONF_PINK_MEDIA),
+                "media_content_type": current.get(CONF_PINK_TYPE),
+            }
+        schema = vol.Schema(
+            {
+                vol.Optional(
+                    "pink", description={"suggested_value": suggested}
+                ): selector.MediaSelector()
+            }
+        )
+        return self.async_show_form(step_id="calibration", data_schema=schema)
 
     # --- Listening Spaces ----------------------------------------------------
 

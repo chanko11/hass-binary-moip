@@ -2,19 +2,23 @@
 
 from __future__ import annotations
 
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
+
+from pytest_homeassistant_custom_component.common import async_mock_service
 
 from custom_components.binary_moip.api import MoIPTopology, MoIPZone
 from custom_components.binary_moip.spaces import Space, SpaceManager
 
 
-def _coordinator(*zones: MoIPZone) -> MagicMock:
+def _coordinator(*zones: MoIPZone, options: dict | None = None) -> MagicMock:
     coord = MagicMock()
     coord.data = MoIPTopology(zones={z.group_id: z for z in zones})
     coord.client = MagicMock()
     coord.client.async_select_source = AsyncMock()
     coord.client.async_set_volume_native = AsyncMock()
     coord.async_request_refresh = AsyncMock()
+    coord.config_entry = SimpleNamespace(entry_id="e1", options=options or {})
     return coord
 
 
@@ -141,3 +145,90 @@ async def test_deactivate_unroutes_and_releases(hass):
     coord.client.async_select_source.assert_any_await(11, None)  # unpaired
     assert "s1" not in mgr.active
     assert 11 not in mgr.zone_owner
+
+
+async def test_uncalibrated_zone_gets_safe_default_not_full(hass):
+    z1 = _zone(11)  # range 0..100
+    coord = _coordinator(z1)
+    mgr = SpaceManager(hass, coord)
+    mgr.spaces["s1"] = Space(id="s1", name="S1", zones=[11], levels={})  # no anchors
+    await mgr.async_activate("s1", level="listening", source=7)
+    # safe default = 0.3 * (100-0) = 30, never blasted to full
+    coord.client.async_set_volume_native.assert_any_await(z1, 30.0)
+
+
+async def test_zone_set_off_then_on(hass):
+    z1, z2 = _zone(11), _zone(12)
+    coord = _coordinator(z1, z2)
+    mgr = SpaceManager(hass, coord)
+    mgr.spaces["s1"] = _space("s1", [11, 12])
+    await mgr.async_activate("s1", level="listening", source=7)
+
+    await mgr.async_zone_set("s1", 12, "off")
+    coord.client.async_select_source.assert_any_await(12, None)
+    assert 12 not in mgr.zone_owner
+
+    coord.client.async_select_source.reset_mock()
+    coord.client.async_set_volume_native.reset_mock()
+    await mgr.async_zone_set("s1", 12, "on")
+    coord.client.async_select_source.assert_any_await(12, 7)  # re-routed to active tx
+    coord.client.async_set_volume_native.assert_any_await(z2, 40.0)  # listening anchor
+    assert mgr.zone_owner[12] == "s1"
+
+
+async def test_zone_set_nudge(hass):
+    z1 = _zone(11)
+    z1.volume = 20.0  # current live native
+    coord = _coordinator(z1)
+    mgr = SpaceManager(hass, coord)
+    mgr.spaces["s1"] = _space("s1", [11])
+    await mgr.async_activate("s1", level="listening", source=7)
+    coord.client.async_set_volume_native.reset_mock()
+
+    await mgr.async_zone_set("s1", 11, "nudge", delta=7.0)
+    coord.client.async_set_volume_native.assert_awaited_once_with(z1, 27.0)
+
+
+async def test_calibration_play_sample_mode_routes_and_plays(hass):
+    play = async_mock_service(hass, "media_player", "play_media")
+    z1, z2 = _zone(11), _zone(12)
+    coord = _coordinator(
+        z1, z2, options={"sources": {"7": {"backing_entity": "media_player.ma1"}}}
+    )
+    mgr = SpaceManager(hass, coord)
+    mgr.spaces["s1"] = _space("s1", [11, 12])
+
+    await mgr.async_calibration_play(
+        "s1", ref_type="sample", source=7, sample="media-source://x/sample.flac"
+    )
+    # routed both zones to the source
+    coord.client.async_select_source.assert_any_await(11, 7)
+    # played the sample on the source's backing player
+    assert len(play) == 1
+    assert play[0].data["entity_id"] == "media_player.ma1"
+    assert play[0].data["media_content_id"] == "media-source://x/sample.flac"
+
+
+async def test_calibration_play_pink_mode_loops(hass):
+    play = async_mock_service(hass, "media_player", "play_media")
+    repeat = async_mock_service(hass, "media_player", "repeat_set")
+    z1 = _zone(11)
+    coord = _coordinator(
+        z1,
+        options={
+            "sources": {"7": {"backing_entity": "media_player.ma1"}},
+            "calibration": {
+                "pink_player": "media_player.ma1",
+                "pink_media": "media-source://local/pink.flac",
+                "pink_type": "music",
+            },
+        },
+    )
+    mgr = SpaceManager(hass, coord)
+    mgr.spaces["s1"] = _space("s1", [11])
+
+    await mgr.async_calibration_play("s1", ref_type="pink")
+    coord.client.async_select_source.assert_any_await(11, 7)  # source backed by ma1
+    assert len(repeat) == 1 and repeat[0].data["repeat"] == "all"
+    assert len(play) == 1
+    assert play[0].data["media_content_id"] == "media-source://local/pink.flac"

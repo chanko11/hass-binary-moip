@@ -11,15 +11,26 @@ from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv
 
-from .const import DOMAIN, LEVELS, MASTER_MAX, MASTER_MIN
+from .const import (
+    DOMAIN,
+    LEVELS,
+    MASTER_MAX,
+    MASTER_MIN,
+    REF_AUTO,
+    REF_PINK,
+    REF_SAMPLE,
+    ZONE_ACTIONS,
+)
 from .spaces import SpaceManager
 
 SERVICE_SPACE_ACTIVATE = "space_activate"
 SERVICE_SPACE_DEACTIVATE = "space_deactivate"
 SERVICE_SPACE_SET_MASTER = "space_set_master"
 SERVICE_SPACE_SET_LEVEL = "space_set_level"
+SERVICE_ZONE_SET = "zone_set"
 SERVICE_CALIBRATION_SET_ANCHOR = "calibration_set_anchor"
 SERVICE_CALIBRATION_CLEAR_ANCHOR = "calibration_clear_anchor"
+SERVICE_CALIBRATION_PLAY = "calibration_play"
 
 _SPACE = vol.Required("space")
 
@@ -58,14 +69,35 @@ CLEAR_ANCHOR_SCHEMA = vol.Schema(
         vol.Required("level"): vol.In(LEVELS),
     }
 )
+ZONE_SET_SCHEMA = vol.Schema(
+    {
+        _SPACE: cv.string,
+        vol.Required("zone"): vol.Coerce(int),
+        vol.Required("action"): vol.In(ZONE_ACTIONS),
+        vol.Optional("delta"): vol.Coerce(float),
+    }
+)
+CALIBRATION_PLAY_SCHEMA = vol.Schema(
+    {
+        _SPACE: cv.string,
+        vol.Optional("ref_type", default=REF_AUTO): vol.In(
+            (REF_AUTO, REF_PINK, REF_SAMPLE)
+        ),
+        vol.Optional("source"): cv.string,
+        vol.Optional("sample"): cv.string,
+        vol.Optional("level"): vol.In(LEVELS),
+    }
+)
 
 _SERVICES = (
     SERVICE_SPACE_ACTIVATE,
     SERVICE_SPACE_DEACTIVATE,
     SERVICE_SPACE_SET_MASTER,
     SERVICE_SPACE_SET_LEVEL,
+    SERVICE_ZONE_SET,
     SERVICE_CALIBRATION_SET_ANCHOR,
     SERVICE_CALIBRATION_CLEAR_ANCHOR,
+    SERVICE_CALIBRATION_PLAY,
 )
 
 
@@ -111,6 +143,20 @@ def async_register_services(hass: HomeAssistant) -> None:
             call.data["space"], call.data["zone"], call.data["level"]
         )
 
+    async def _zone_set(call: ServiceCall) -> None:
+        await _manager(hass).async_zone_set(
+            call.data["space"], call.data["zone"], call.data["action"], call.data.get("delta")
+        )
+
+    async def _calibration_play(call: ServiceCall) -> None:
+        await _manager(hass).async_calibration_play(
+            call.data["space"],
+            ref_type=call.data["ref_type"],
+            source=call.data.get("source"),
+            sample=call.data.get("sample"),
+            level=call.data.get("level"),
+        )
+
     hass.services.async_register(DOMAIN, SERVICE_SPACE_ACTIVATE, _activate, schema=ACTIVATE_SCHEMA)
     hass.services.async_register(DOMAIN, SERVICE_SPACE_DEACTIVATE, _deactivate, schema=DEACTIVATE_SCHEMA)
     hass.services.async_register(DOMAIN, SERVICE_SPACE_SET_MASTER, _set_master, schema=SET_MASTER_SCHEMA)
@@ -120,6 +166,10 @@ def async_register_services(hass: HomeAssistant) -> None:
     )
     hass.services.async_register(
         DOMAIN, SERVICE_CALIBRATION_CLEAR_ANCHOR, _clear_anchor, schema=CLEAR_ANCHOR_SCHEMA
+    )
+    hass.services.async_register(DOMAIN, SERVICE_ZONE_SET, _zone_set, schema=ZONE_SET_SCHEMA)
+    hass.services.async_register(
+        DOMAIN, SERVICE_CALIBRATION_PLAY, _calibration_play, schema=CALIBRATION_PLAY_SCHEMA
     )
 
 

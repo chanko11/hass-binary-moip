@@ -29,7 +29,8 @@
         "menu_options": {
           "zones": "Zones",
           "sources": "Sources",
-          "spaces": "Listening Spaces"
+          "spaces": "Listening Spaces",
+          "calibration": "Calibration reference"
         }
       },
       "zones": {
@@ -61,6 +62,13 @@
           "name": "Name",
           "zones": "Zones in this space",
           "delete": "Delete this space"
+        }
+      },
+      "calibration": {
+        "title": "Calibration reference",
+        "description": "Optional: pick a pink-noise (or reference) track and the player to audition it on during calibration. Leave blank to calibrate with any source you're already playing.",
+        "data": {
+          "pink": "Pink-noise reference"
         }
       }
     }

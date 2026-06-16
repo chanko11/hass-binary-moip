@@ -113,3 +113,23 @@ ROUTING_DEVICE: Final = "device"  # the device sources its own content (non-MoIP
 # the options flow). Calibration anchor VALUES live in the dedicated Store.
 OPT_SPACES: Final = "spaces"  # list of {id, name, zones, master_positions}
 OPT_ZONE_CONFIGS: Final = "zone_configs"  # {group_id: {routing, driver{...}}}
+# Calibration reference config: {pink_player, pink_media, pink_type}.
+OPT_CALIBRATION: Final = "calibration"
+CONF_PINK_PLAYER: Final = "pink_player"
+CONF_PINK_MEDIA: Final = "pink_media"
+CONF_PINK_TYPE: Final = "pink_type"
+
+# calibration_play reference modes.
+REF_AUTO: Final = "auto"  # pink when configured, else sample
+REF_PINK: Final = "pink"
+REF_SAMPLE: Final = "sample"
+
+# zone_set actions (per-zone override within an active Space).
+ZONE_ON: Final = "on"
+ZONE_OFF: Final = "off"
+ZONE_NUDGE: Final = "nudge"
+ZONE_ACTIONS: Final = (ZONE_ON, ZONE_OFF, ZONE_NUDGE)
+
+# Uncalibrated zone (no anchor) safe default = this fraction of native range.
+# "Hold a safe default; never blast to full" (spec §4/§5).
+SAFE_DEFAULT_FRACTION: Final = 0.3

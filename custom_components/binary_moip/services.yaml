@@ -86,6 +86,79 @@ space_set_level:
             - listening
             - party
 
+zone_set:
+  name: Zone override (within a Space)
+  description: Per-zone on/off, or a temporary volume nudge, within an active Listening Space.
+  fields:
+    space:
+      name: Space
+      required: true
+      selector:
+        text:
+    zone:
+      name: Zone (group_rx id)
+      required: true
+      selector:
+        number:
+          min: 0
+          mode: box
+    action:
+      name: Action
+      required: true
+      selector:
+        select:
+          options:
+            - "on"
+            - "off"
+            - nudge
+    delta:
+      name: Nudge delta (native units)
+      description: Required for 'nudge' — signed change to the zone's live volume.
+      selector:
+        number:
+          mode: box
+
+calibration_play:
+  name: Calibrate — play reference
+  description: >-
+    Audition a reference across a Space's zones (route + working level) so you
+    can walk around and snapshot per-zone anchors. Uses the configured pink-noise
+    item when available, else a source/sample you provide.
+  fields:
+    space:
+      name: Space
+      required: true
+      selector:
+        text:
+    ref_type:
+      name: Reference type
+      description: auto (pink if configured, else sample), pink, or sample.
+      selector:
+        select:
+          options:
+            - auto
+            - pink
+            - sample
+    source:
+      name: Source
+      description: MoIP source media_player entity_id (or id) to route to the zones.
+      selector:
+        text:
+    sample:
+      name: Sample media id
+      description: Optional media_content_id to play on the source's backing player.
+      selector:
+        text:
+    level:
+      name: Level
+      description: Optional — pre-set zones to this level's working volume.
+      selector:
+        select:
+          options:
+            - background
+            - listening
+            - party
+
 calibration_set_anchor:
   name: Calibrate — set anchor
   description: >-

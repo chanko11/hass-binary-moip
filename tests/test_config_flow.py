@@ -268,3 +268,34 @@ async def test_options_flow_delete_space(hass, enable_custom_integrations):
     r = await flow.async_configure(fid, {"space": cf.BinaryMoIPOptionsFlow._DONE})
     assert r["type"] == FlowResultType.CREATE_ENTRY
     assert r["data"][OPT_SPACES] == []
+
+
+async def test_options_flow_calibration_reference(hass, enable_custom_integrations):
+    from custom_components.binary_moip.const import OPT_CALIBRATION
+
+    entry = MockConfigEntry(domain=DOMAIN, data=USER_INPUT)
+    entry.add_to_hass(hass)
+    entry.runtime_data = SimpleNamespace(
+        data=MoIPTopology(
+            zones={11: MoIPZone(group_id=11, name="Kitchen")},
+            sources={41: MoIPSource(group_id=41, name="TX-1")},
+        )
+    )
+
+    flow = hass.config_entries.options
+    result = await flow.async_init(entry.entry_id)
+    r = await flow.async_configure(result["flow_id"], {"next_step_id": "calibration"})
+    assert r["step_id"] == "calibration"
+    r = await flow.async_configure(
+        result["flow_id"],
+        {
+            "pink": {
+                "entity_id": "media_player.ma1",
+                "media_content_id": "media-source://media_source/local/pink.flac",
+                "media_content_type": "music",
+            }
+        },
+    )
+    assert r["type"] == FlowResultType.CREATE_ENTRY
+    assert r["data"][OPT_CALIBRATION]["pink_player"] == "media_player.ma1"
+    assert r["data"][OPT_CALIBRATION]["pink_media"].endswith("pink.flac")
