@@ -57,11 +57,11 @@
       },
       "space_edit": {
         "title": "Edit Listening Space",
-        "description": "Rename {space}. Pick a Label to source membership from your areas (label → areas → zones), or leave it blank and pick zones explicitly. With a label set, the zone list becomes add-ons. Volume levels are set later in the calibration tool.",
+        "description": "Rename {space}. Pick a Label to source membership from your areas (label → areas → zones) — or leave it blank and pick zones explicitly. A label takes over membership; the explicit list is ignored while a label is set. Volume levels are set later in the calibration tool.",
         "data": {
           "name": "Name",
           "label": "Membership label (optional)",
-          "zones": "Zones (explicit, or add-ons when a label is set)",
+          "zones": "Zones (used only when no label is set)",
           "delete": "Delete this space"
         }
       },

@@ -361,22 +361,18 @@ class BinaryMoIPOptionsFlow(OptionsFlow):
             else:
                 space["name"] = (user_input.get("name") or space["name"]).strip()
                 space["label"] = user_input.get("label") or None
-                # Explicit zones used when no label; otherwise add/exclude overrides.
                 zones = [int(z) for z in user_input.get("zones", [])]
-                if space["label"]:
-                    space["zones_add"] = zones
-                else:
-                    space["zones"] = zones
+                # A label drives membership (label -> areas -> zones); the explicit
+                # list is only used when there's no label. (add/exclude overrides
+                # are a future advanced step.)
+                space["zones"] = [] if space["label"] else zones
             return await self.async_step_spaces()
 
         zone_options = [
             {"value": str(gid), "label": name} for gid, name in self._zone_display_items()
         ]
-        # When a label is set, the multi-select is the add-on override; else the
-        # explicit membership.
-        zones_default = [
-            str(z) for z in (space["zones_add"] if space.get("label") else space["zones"])
-        ]
+        # A label drives membership; the explicit list applies only when no label.
+        zones_default = [] if space.get("label") else [str(z) for z in space["zones"]]
         label_field = (
             vol.Optional("label", description={"suggested_value": space.get("label")})
             if space.get("label")
