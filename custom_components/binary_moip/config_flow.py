@@ -226,16 +226,20 @@ class BinaryMoIPOptionsFlow(OptionsFlow):
         current = self.config_entry.options.get(OPT_CALIBRATION, {})
         if user_input is not None:
             calibration = {}
-            pink = user_input.get("pink")
-            if pink and pink.get("media_content_id"):
-                calibration[CONF_PINK_PLAYER] = pink.get("entity_id")
-                calibration[CONF_PINK_MEDIA] = pink.get("media_content_id")
-                calibration[CONF_PINK_TYPE] = pink.get("media_content_type")
-            music = user_input.get("music")
-            if music and music.get("media_content_id"):
-                calibration[CONF_MUSIC_PLAYER] = music.get("entity_id")
-                calibration[CONF_MUSIC_MEDIA] = music.get("media_content_id")
-                calibration[CONF_MUSIC_TYPE] = music.get("media_content_type")
+
+            def _capture(field, player_key, media_key, type_key):
+                picked = user_input.get(field)
+                if picked and picked.get("media_content_id"):
+                    calibration[player_key] = picked.get("entity_id")
+                    calibration[media_key] = picked.get("media_content_id")
+                    calibration[type_key] = picked.get("media_content_type")
+                elif current.get(media_key):  # untouched picker -> keep existing
+                    calibration[player_key] = current.get(player_key)
+                    calibration[media_key] = current.get(media_key)
+                    calibration[type_key] = current.get(type_key)
+
+            _capture("pink", CONF_PINK_PLAYER, CONF_PINK_MEDIA, CONF_PINK_TYPE)
+            _capture("music", CONF_MUSIC_PLAYER, CONF_MUSIC_MEDIA, CONF_MUSIC_TYPE)
             options = {**self.config_entry.options, OPT_CALIBRATION: calibration}
             return self.async_create_entry(title="", data=options)
 
