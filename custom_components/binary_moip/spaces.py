@@ -483,73 +483,80 @@ class SpaceManager:
         source: str | int | None = None,
         sample: str | None = None,
         level: str | None = None,
+        set_levels: bool = True,
     ) -> None:
         """Audition a reference across a Space's zones so the walk-around
         adjust→snapshot loop works (spec §6/§7).
 
-        ``pink`` mode plays the configured Local-Media pink-noise item (looped)
-        on its MA player, routed to the zones. ``sample`` mode routes ``source``
-        (or whatever's already routed) and optionally ``play_media``s a sample on
-        that source's backing player — so calibration isn't blocked on the
-        pink-noise file. ``auto`` picks pink when configured, else sample.
+        The reference plays on the Space's **source backing player**, so it
+        reaches every routed zone: ``pink`` plays the configured Local-Media
+        pink-noise item looped; ``sample`` plays a given media id; ``music``/no
+        sample leaves whatever's already playing. ``auto`` picks pink when
+        configured, else sample.
+
+        ``set_levels`` True (default) routes + applies the working level — use it
+        on the first play and on level changes. ``set_levels`` False keeps the
+        current volumes (just swaps the audio) — use it for the music→pink switch
+        so it doesn't reset what you're dialing in.
         """
-        space = self.get_space(space_id)
+        self.get_space(space_id)
         cfg = self._calibration_config()
-        pink_player = cfg.get(CONF_PINK_PLAYER)
         pink_media = cfg.get(CONF_PINK_MEDIA)
-        use_pink = (ref_type == REF_PINK) or (
-            ref_type == REF_AUTO and pink_player and pink_media
-        )
-        if ref_type == REF_PINK and not (pink_player and pink_media):
+        pink_player = cfg.get(CONF_PINK_PLAYER)
+        use_pink = (ref_type == REF_PINK) or (ref_type == REF_AUTO and bool(pink_media))
+        if ref_type == REF_PINK and not pink_media:
             raise RuntimeError("No pink-noise reference configured (Calibration options)")
 
-        # Resolve the MoIP source to route. For pink, default to the source whose
-        # backing player is the configured pink player.
-        route_source: str | int | None = source
-        if use_pink and route_source is None and pink_player:
-            route_source = self._source_for_backing(pink_player)
-        if route_source is None and space_id not in self.active:
+        # Resolve the MoIP source: explicit, else the active source, else (for
+        # pink) the source whose backing is the configured pink player.
+        state = self.active.get(space_id)
+        if source is not None:
+            tx_id = self._resolve_source_tx(source)
+        elif state and state.tx_id is not None:
+            tx_id = state.tx_id
+        elif use_pink and pink_player:
+            tx_id = self._source_for_backing(pink_player)
+        else:
+            tx_id = None
+        if tx_id is None:
             raise RuntimeError(
                 "Provide a source (or start one playing) to audition for calibration"
             )
 
-        # Route + set working levels (reuses activation; uncalibrated -> safe default).
-        await self.async_activate(
-            space_id, level=level or LEVEL_LISTENING, source=route_source
-        )
+        if set_levels or space_id not in self.active:
+            await self.async_activate(space_id, level=level or LEVEL_LISTENING, source=tx_id)
 
+        # Reference audio on the source's backing player -> all routed zones hear it.
+        backing = self._source_backing(tx_id)
         if use_pink:
+            if not backing:
+                raise RuntimeError("Source has no backing media_player to play pink noise on")
             await self.hass.services.async_call(
-                "media_player",
-                "repeat_set",
-                {"entity_id": pink_player, "repeat": "all"},
-                blocking=True,
+                "media_player", "repeat_set", {"entity_id": backing, "repeat": "all"}, blocking=True
             )
             await self.hass.services.async_call(
                 "media_player",
                 "play_media",
                 {
-                    "entity_id": pink_player,
+                    "entity_id": backing,
                     "media_content_id": pink_media,
                     "media_content_type": cfg.get(CONF_PINK_TYPE) or "music",
                     "enqueue": "replace",
                 },
                 blocking=True,
             )
-        elif sample:
-            backing = self._source_backing(self._resolve_source_tx(route_source))
-            if backing:
-                await self.hass.services.async_call(
-                    "media_player",
-                    "play_media",
-                    {
-                        "entity_id": backing,
-                        "media_content_id": sample,
-                        "media_content_type": "music",
-                        "enqueue": "replace",
-                    },
-                    blocking=True,
-                )
+        elif sample and backing:
+            await self.hass.services.async_call(
+                "media_player",
+                "play_media",
+                {
+                    "entity_id": backing,
+                    "media_content_id": sample,
+                    "media_content_type": "music",
+                    "enqueue": "replace",
+                },
+                blocking=True,
+            )
 
     async def async_zone_set(
         self, space_id: str, zone: int, action: str, delta: float | None = None

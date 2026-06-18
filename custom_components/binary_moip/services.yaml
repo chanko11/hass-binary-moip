@@ -158,6 +158,14 @@ calibration_play:
             - background
             - listening
             - party
+    set_levels:
+      name: Set working levels
+      description: >-
+        True (default) routes + applies the level. False keeps current volumes
+        and just swaps the audio (e.g. music → pink) so it doesn't reset what
+        you're dialing in.
+      selector:
+        boolean:
 
 calibration_set_anchor:
   name: Calibrate — set anchor

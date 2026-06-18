@@ -305,3 +305,27 @@ async def test_calibration_play_pink_mode_loops(hass):
     assert len(repeat) == 1 and repeat[0].data["repeat"] == "all"
     assert len(play) == 1
     assert play[0].data["media_content_id"] == "media-source://local/pink.flac"
+    assert play[0].data["entity_id"] == "media_player.ma1"  # the source's backing
+
+
+async def test_calibration_play_set_levels_false_keeps_volumes(hass):
+    play = async_mock_service(hass, "media_player", "play_media")
+    async_mock_service(hass, "media_player", "repeat_set")
+    coord = _coordinator(
+        _zone(11),
+        options={
+            "sources": {"7": {"backing_entity": "media_player.ma1"}},
+            "calibration": {"pink_media": "media-source://local/pink.flac", "pink_type": "music"},
+        },
+    )
+    mgr = SpaceManager(hass, coord)
+    mgr.spaces["s1"] = _space("s1", [11])
+    await mgr.async_activate("s1", level="listening", source=7)  # active, tx_id=7
+    coord.client.async_select_source.reset_mock()
+    coord.client.async_set_volume_native.reset_mock()
+
+    # swap to pink without re-leveling: no re-route, no volume changes, just audio
+    await mgr.async_calibration_play("s1", ref_type="pink", set_levels=False)
+    coord.client.async_select_source.assert_not_called()
+    coord.client.async_set_volume_native.assert_not_called()
+    assert play and play[0].data["entity_id"] == "media_player.ma1"

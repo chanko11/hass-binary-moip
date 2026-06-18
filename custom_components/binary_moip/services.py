@@ -86,6 +86,7 @@ CALIBRATION_PLAY_SCHEMA = vol.Schema(
         vol.Optional("source"): cv.string,
         vol.Optional("sample"): cv.string,
         vol.Optional("level"): vol.In(LEVELS),
+        vol.Optional("set_levels", default=True): cv.boolean,
     }
 )
 
@@ -155,6 +156,7 @@ def async_register_services(hass: HomeAssistant) -> None:
             source=call.data.get("source"),
             sample=call.data.get("sample"),
             level=call.data.get("level"),
+            set_levels=call.data["set_levels"],
         )
 
     hass.services.async_register(DOMAIN, SERVICE_SPACE_ACTIVATE, _activate, schema=ACTIVATE_SCHEMA)
