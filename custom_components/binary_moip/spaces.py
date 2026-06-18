@@ -281,6 +281,53 @@ class SpaceManager:
             raise KeyError(f"Unknown Listening Space '{space_id}'")
         return space
 
+    def describe(self) -> list[dict]:
+        """Serializable snapshot of all Spaces for the frontend (read API).
+
+        Each Space: id/name/label, master_positions, live state, and its zones
+        with entity_id, name, per-level anchors, calibrated flag, current live
+        native volume, and native bounds.
+        """
+        from homeassistant.helpers import entity_registry
+
+        ereg = entity_registry.async_get(self.hass)
+        entry_id = self.coordinator.config_entry.entry_id
+        out: list[dict] = []
+        for sid, space in self.spaces.items():
+            rs = self.active.get(sid)
+            zones = []
+            for gid in space.zones:
+                eid = ereg.async_get_entity_id("media_player", DOMAIN, f"{entry_id}_{gid}")
+                st = self.hass.states.get(eid) if eid else None
+                driver = self._driver(gid)
+                lo, hi = driver.bounds
+                anchors = {lvl: space.levels.get(lvl, {}).get(gid) for lvl in LEVELS}
+                zones.append(
+                    {
+                        "group_id": gid,
+                        "entity_id": eid,
+                        "name": st.name if st else (eid or str(gid)),
+                        "anchors": anchors,
+                        "calibrated": any(v is not None for v in anchors.values()),
+                        "current_native": driver.current_native(),
+                        "bounds": [lo, hi],
+                    }
+                )
+            out.append(
+                {
+                    "id": sid,
+                    "name": space.name,
+                    "label": space.label,
+                    "master_positions": space.master_positions,
+                    "active": rs is not None,
+                    "master": rs.master if rs else None,
+                    "level": rs.level if rs else None,
+                    "source": rs.source if rs else None,
+                    "zones": zones,
+                }
+            )
+        return out
+
     def _resolve_source_tx(self, source: str | int | None) -> int | None:
         """Resolve a source to a group_tx id. Accepts a tx id (int), a source
         media_player entity_id (``..._source_<tx>`` unique_id), or None (no route

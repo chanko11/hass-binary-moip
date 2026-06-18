@@ -20,6 +20,7 @@ from .const import DOMAIN
 from .coordinator import BinaryMoIPConfigEntry, BinaryMoIPDataUpdateCoordinator
 from .services import async_register_services, async_unregister_services
 from .spaces import SpaceManager
+from .websocket import async_register_ws
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: BinaryMoIPConfigEntry) -> bool:
@@ -45,6 +46,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: BinaryMoIPConfigEntry) -
     await manager.async_load()
     coordinator.space_manager = manager
     async_register_services(hass)
+    async_register_ws(hass)
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     # Real-time updates via the change-event websocket (polling is the fallback).

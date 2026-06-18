@@ -198,6 +198,28 @@ async def test_async_load_resolves_label_space(hass):
     assert mgr.spaces["main"].zones == [1032]  # resolved from the label
 
 
+async def test_describe_spaces_snapshot(hass):
+    from homeassistant.helpers import entity_registry as er
+
+    ereg = er.async_get(hass)
+    z = ereg.async_get_or_create("media_player", "binary_moip", "e1_1032")
+    hass.states.async_set(z.entity_id, "idle", {"friendly_name": "Kitchen"})
+    zone = _zone(1032)
+    zone.volume = 40.0
+    mgr = SpaceManager(hass, _coordinator(zone))
+    mgr.spaces["s1"] = Space(id="s1", name="Main", zones=[1032], levels={"background": {1032: 30.0}})
+
+    desc = mgr.describe()
+    assert len(desc) == 1
+    s = desc[0]
+    assert s["id"] == "s1" and s["name"] == "Main" and s["active"] is False
+    z0 = s["zones"][0]
+    assert z0["group_id"] == 1032 and z0["entity_id"] == z.entity_id
+    assert z0["name"] == "Kitchen"
+    assert z0["anchors"]["background"] == 30.0 and z0["calibrated"] is True
+    assert z0["current_native"] == 40.0 and z0["bounds"] == [0.0, 100.0]
+
+
 async def test_uncalibrated_zone_gets_safe_default_not_full(hass):
     z1 = _zone(11)  # range 0..100
     coord = _coordinator(z1)
