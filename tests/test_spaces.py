@@ -308,6 +308,24 @@ async def test_calibration_play_pink_mode_loops(hass):
     assert play[0].data["entity_id"] == "media_player.ma1"  # the source's backing
 
 
+async def test_calibration_play_music_plays_configured_reference(hass):
+    play = async_mock_service(hass, "media_player", "play_media")
+    async_mock_service(hass, "media_player", "repeat_set")
+    coord = _coordinator(
+        _zone(11),
+        options={
+            "sources": {"7": {"backing_entity": "media_player.ma1"}},
+            "calibration": {"music_media": "media-source://local/song.flac", "music_type": "music"},
+        },
+    )
+    mgr = SpaceManager(hass, coord)
+    mgr.spaces["s1"] = _space("s1", [11])
+    # music mode (ref_type sample) with a configured music reference -> plays it
+    await mgr.async_calibration_play("s1", ref_type="sample", source=7)
+    assert play and play[0].data["media_content_id"] == "media-source://local/song.flac"
+    assert play[0].data["entity_id"] == "media_player.ma1"
+
+
 async def test_calibration_play_set_levels_false_keeps_volumes(hass):
     play = async_mock_service(hass, "media_player", "play_media")
     async_mock_service(hass, "media_player", "repeat_set")

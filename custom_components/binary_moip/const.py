@@ -113,11 +113,14 @@ ROUTING_DEVICE: Final = "device"  # the device sources its own content (non-MoIP
 # the options flow). Calibration anchor VALUES live in the dedicated Store.
 OPT_SPACES: Final = "spaces"  # list of {id, name, zones, master_positions}
 OPT_ZONE_CONFIGS: Final = "zone_configs"  # {group_id: {routing, driver{...}}}
-# Calibration reference config: {pink_player, pink_media, pink_type}.
+# Calibration reference config: pink-noise + (optional) music reference items.
 OPT_CALIBRATION: Final = "calibration"
 CONF_PINK_PLAYER: Final = "pink_player"
 CONF_PINK_MEDIA: Final = "pink_media"
 CONF_PINK_TYPE: Final = "pink_type"
+CONF_MUSIC_PLAYER: Final = "music_player"
+CONF_MUSIC_MEDIA: Final = "music_media"
+CONF_MUSIC_TYPE: Final = "music_type"
 
 # calibration_play reference modes.
 REF_AUTO: Final = "auto"  # pink when configured, else sample

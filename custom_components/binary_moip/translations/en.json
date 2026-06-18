@@ -67,9 +67,10 @@
       },
       "calibration": {
         "title": "Calibration reference",
-        "description": "Optional: pick a pink-noise (or reference) track and the player to audition it on during calibration. Leave blank to calibrate with any source you're already playing.",
+        "description": "Pick the pink-noise file (for SPL matching) and, optionally, a music track/playlist for setting the reference level. Both loop on the Space's source during calibration. Leave music blank to use whatever you're already playing.",
         "data": {
-          "pink": "Pink-noise reference"
+          "pink": "Pink-noise reference",
+          "music": "Music reference (optional)"
         }
       }
     }

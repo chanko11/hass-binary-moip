@@ -17,6 +17,8 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.storage import Store
 
 from .const import (
+    CONF_MUSIC_MEDIA,
+    CONF_MUSIC_TYPE,
     CONF_PINK_MEDIA,
     CONF_PINK_PLAYER,
     CONF_PINK_TYPE,
@@ -545,18 +547,26 @@ class SpaceManager:
                 },
                 blocking=True,
             )
-        elif sample and backing:
-            await self.hass.services.async_call(
-                "media_player",
-                "play_media",
-                {
-                    "entity_id": backing,
-                    "media_content_id": sample,
-                    "media_content_type": "music",
-                    "enqueue": "replace",
-                },
-                blocking=True,
-            )
+        else:
+            # Music mode: play the explicit sample, else the configured music
+            # reference (looped). With neither, leave whatever's already playing.
+            media = sample or cfg.get(CONF_MUSIC_MEDIA)
+            if media and backing:
+                if not sample:  # the configured reference loops like pink
+                    await self.hass.services.async_call(
+                        "media_player", "repeat_set", {"entity_id": backing, "repeat": "all"}, blocking=True
+                    )
+                await self.hass.services.async_call(
+                    "media_player",
+                    "play_media",
+                    {
+                        "entity_id": backing,
+                        "media_content_id": media,
+                        "media_content_type": "music" if sample else (cfg.get(CONF_MUSIC_TYPE) or "music"),
+                        "enqueue": "replace",
+                    },
+                    blocking=True,
+                )
 
     async def async_zone_set(
         self, space_id: str, zone: int, action: str, delta: float | None = None

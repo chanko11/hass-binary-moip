@@ -23,6 +23,9 @@ from .const import (
     CONF_HOST,
     CONF_PASSWORD,
     CONF_PORT,
+    CONF_MUSIC_MEDIA,
+    CONF_MUSIC_PLAYER,
+    CONF_MUSIC_TYPE,
     CONF_PINK_MEDIA,
     CONF_PINK_PLAYER,
     CONF_PINK_TYPE,
@@ -222,29 +225,39 @@ class BinaryMoIPOptionsFlow(OptionsFlow):
         """
         current = self.config_entry.options.get(OPT_CALIBRATION, {})
         if user_input is not None:
-            media = user_input.get("pink")
             calibration = {}
-            if media and media.get("media_content_id"):
-                calibration = {
-                    CONF_PINK_PLAYER: media.get("entity_id"),
-                    CONF_PINK_MEDIA: media.get("media_content_id"),
-                    CONF_PINK_TYPE: media.get("media_content_type"),
-                }
+            pink = user_input.get("pink")
+            if pink and pink.get("media_content_id"):
+                calibration[CONF_PINK_PLAYER] = pink.get("entity_id")
+                calibration[CONF_PINK_MEDIA] = pink.get("media_content_id")
+                calibration[CONF_PINK_TYPE] = pink.get("media_content_type")
+            music = user_input.get("music")
+            if music and music.get("media_content_id"):
+                calibration[CONF_MUSIC_PLAYER] = music.get("entity_id")
+                calibration[CONF_MUSIC_MEDIA] = music.get("media_content_id")
+                calibration[CONF_MUSIC_TYPE] = music.get("media_content_type")
             options = {**self.config_entry.options, OPT_CALIBRATION: calibration}
             return self.async_create_entry(title="", data=options)
 
-        suggested = None
-        if current.get(CONF_PINK_MEDIA):
-            suggested = {
-                "entity_id": current.get(CONF_PINK_PLAYER),
-                "media_content_id": current.get(CONF_PINK_MEDIA),
-                "media_content_type": current.get(CONF_PINK_TYPE),
+        def _suggest(media_key, player_key, type_key):
+            if not current.get(media_key):
+                return None
+            return {
+                "entity_id": current.get(player_key),
+                "media_content_id": current.get(media_key),
+                "media_content_type": current.get(type_key),
             }
+
         schema = vol.Schema(
             {
                 vol.Optional(
-                    "pink", description={"suggested_value": suggested}
-                ): selector.MediaSelector()
+                    "pink",
+                    description={"suggested_value": _suggest(CONF_PINK_MEDIA, CONF_PINK_PLAYER, CONF_PINK_TYPE)},
+                ): selector.MediaSelector(),
+                vol.Optional(
+                    "music",
+                    description={"suggested_value": _suggest(CONF_MUSIC_MEDIA, CONF_MUSIC_PLAYER, CONF_MUSIC_TYPE)},
+                ): selector.MediaSelector(),
             }
         )
         return self.async_show_form(step_id="calibration", data_schema=schema)
