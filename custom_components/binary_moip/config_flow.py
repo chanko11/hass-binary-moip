@@ -271,6 +271,9 @@ class BinaryMoIPOptionsFlow(OptionsFlow):
                     "id": s["id"],
                     "name": s.get("name", s["id"]),
                     "zones": [int(z) for z in s.get("zones", [])],
+                    "label": s.get("label") or None,
+                    "zones_add": [int(z) for z in s.get("zones_add", [])],
+                    "zones_exclude": [int(z) for z in s.get("zones_exclude", [])],
                     "master_positions": s.get("master_positions")
                     or dict(DEFAULT_MASTER_POSITIONS),
                 }
@@ -336,6 +339,9 @@ class BinaryMoIPOptionsFlow(OptionsFlow):
                 "id": sid,
                 "name": name,
                 "zones": [],
+                "label": None,
+                "zones_add": [],
+                "zones_exclude": [],
                 "master_positions": dict(DEFAULT_MASTER_POSITIONS),
             }
             self._editing = sid
@@ -354,18 +360,33 @@ class BinaryMoIPOptionsFlow(OptionsFlow):
                 self._spaces.pop(self._editing, None)
             else:
                 space["name"] = (user_input.get("name") or space["name"]).strip()
-                space["zones"] = [int(z) for z in user_input.get("zones", [])]
+                space["label"] = user_input.get("label") or None
+                # Explicit zones used when no label; otherwise add/exclude overrides.
+                zones = [int(z) for z in user_input.get("zones", [])]
+                if space["label"]:
+                    space["zones_add"] = zones
+                else:
+                    space["zones"] = zones
             return await self.async_step_spaces()
 
         zone_options = [
             {"value": str(gid), "label": name} for gid, name in self._zone_display_items()
         ]
+        # When a label is set, the multi-select is the add-on override; else the
+        # explicit membership.
+        zones_default = [
+            str(z) for z in (space["zones_add"] if space.get("label") else space["zones"])
+        ]
+        label_field = (
+            vol.Optional("label", description={"suggested_value": space.get("label")})
+            if space.get("label")
+            else vol.Optional("label")
+        )
         schema = vol.Schema(
             {
                 vol.Required("name", default=space["name"]): str,
-                vol.Optional(
-                    "zones", default=[str(z) for z in space["zones"]]
-                ): selector.SelectSelector(
+                label_field: selector.LabelSelector(),
+                vol.Optional("zones", default=zones_default): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=zone_options,
                         multiple=True,

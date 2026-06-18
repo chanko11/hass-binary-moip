@@ -21,6 +21,7 @@ from .const import (
     CONF_PINK_PLAYER,
     CONF_PINK_TYPE,
     DEFAULT_MASTER_POSITIONS,
+    DOMAIN,
     LEVEL_LISTENING,
     LEVELS,
     MASTER_MAX,
@@ -53,7 +54,15 @@ class Space:
 
     id: str
     name: str
-    zones: list[int] = field(default_factory=list)  # group_rx ids, ordered
+    # Effective member zones (group_rx ids) used at runtime. When the Space is
+    # label-sourced, the manager fills this by resolving the label at load.
+    zones: list[int] = field(default_factory=list)
+    # --- membership source (authored config) ---
+    # Optional HA label id; when set, membership = label->areas->zones (+/- overrides).
+    label: str | None = None
+    # Manual overrides on top of the resolved (or explicit) set.
+    zones_add: list[int] = field(default_factory=list)
+    zones_exclude: list[int] = field(default_factory=list)
     # level -> {group_id: native value}; anchors may be partial (graceful degr.)
     levels: dict[str, dict[int, float]] = field(default_factory=dict)
     # level -> master-scale position (defaults to DEFAULT_MASTER_POSITIONS)
@@ -74,6 +83,9 @@ class Space:
             id=d["id"],
             name=d.get("name", d["id"]),
             zones=[int(z) for z in d.get("zones", [])],
+            label=d.get("label") or None,
+            zones_add=[int(z) for z in d.get("zones_add", [])],
+            zones_exclude=[int(z) for z in d.get("zones_exclude", [])],
             levels=levels,
             master_positions=positions,
         )
@@ -83,6 +95,9 @@ class Space:
             "id": self.id,
             "name": self.name,
             "zones": list(self.zones),
+            "label": self.label,
+            "zones_add": list(self.zones_add),
+            "zones_exclude": list(self.zones_exclude),
             "levels": {
                 lvl: {str(gid): v for gid, v in self.levels.get(lvl, {}).items()}
                 for lvl in LEVELS
@@ -147,14 +162,71 @@ class SpaceManager:
 
         self.spaces = {}
         for struct in options.get(OPT_SPACES) or []:
-            space = Space.from_dict(struct)  # name/zones/positions (no anchors here)
+            space = Space.from_dict(struct)  # name/positions/source (no anchors here)
             sa = anchors.get(space.id, {})
             space.levels = {
                 lvl: {int(g): float(v) for g, v in (sa.get(lvl) or {}).items()}
                 for lvl in LEVELS
             }
+            # Resolve effective membership: from the label (if set) else the
+            # explicit list, then apply add/exclude overrides.
+            explicit = list(space.zones)
+            space.zones = self._resolve_membership(
+                space.label, explicit, space.zones_add, space.zones_exclude
+            )
             self.spaces[space.id] = space
         self._drivers.clear()
+
+    def _resolve_membership(
+        self,
+        label: str | None,
+        explicit: list[int],
+        add: list[int],
+        exclude: list[int],
+    ) -> list[int]:
+        """Effective member zones: label->areas->zones (or explicit), +add -exclude."""
+        base = self._zones_for_label(label) if label else list(explicit)
+        excl = set(exclude or [])
+        eff = [g for g in base if g not in excl]
+        for g in add or []:
+            if g not in eff and g not in excl:
+                eff.append(g)
+        return eff
+
+    def _zones_for_label(self, label_id: str) -> list[int]:
+        """MoIP zones (group ids) whose HA area carries ``label_id``.
+
+        Resolves label -> areas-with-that-label -> the binary_moip zone
+        media_players assigned to those areas. Disabled/unassigned zones and
+        rooms without speakers contribute nothing (spec §4, label scheme doc).
+        """
+        from homeassistant.helpers import (
+            area_registry,
+            device_registry,
+            entity_registry,
+        )
+
+        areg = area_registry.async_get(self.hass)
+        ereg = entity_registry.async_get(self.hass)
+        dreg = device_registry.async_get(self.hass)
+        entry_id = self.coordinator.config_entry.entry_id
+        area_ids = {a.id for a in areg.async_list_areas() if label_id in (a.labels or set())}
+
+        out: list[int] = []
+        for gid in self.coordinator.data.zones:
+            eid = ereg.async_get_entity_id("media_player", DOMAIN, f"{entry_id}_{gid}")
+            if not eid:
+                continue
+            ent = ereg.async_get(eid)
+            if ent is None or ent.disabled_by is not None:
+                continue
+            aid = ent.area_id
+            if aid is None and ent.device_id:
+                dev = dreg.async_get(ent.device_id)
+                aid = dev.area_id if dev else None
+            if aid in area_ids:
+                out.append(gid)
+        return out
 
     async def async_save_anchors(self) -> None:
         """Persist calibration anchor values to the Store (used by Phase 2)."""
