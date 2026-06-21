@@ -147,11 +147,16 @@ async def test_deactivate_unroutes_and_releases(hass):
     assert 11 not in mgr.zone_owner
 
 
-def test_resolve_membership_explicit_with_overrides(hass):
-    coord = _coordinator(_zone(1), _zone(2), _zone(3))
+def test_migrate_anchors_rekeys_old_space_to_label(hass):
+    coord = _coordinator(_zone(1))
     mgr = SpaceManager(hass, coord)
-    # no label -> explicit list, with add/exclude applied
-    assert mgr._resolve_membership(None, [1, 2, 3], [4], [2]) == [1, 3, 4]
+    anchors = {"main_living": {"background": {"1032": 30.0}}}
+    changed = mgr._migrate_anchors([{"id": "main_living", "label": "common"}], anchors)
+    assert changed is True
+    assert "main_living" not in anchors
+    assert anchors["common"]["background"]["1032"] == 30.0
+    # idempotent: a space whose id already equals its label is left alone
+    assert mgr._migrate_anchors([{"id": "common", "label": "common"}], anchors) is False
 
 
 async def test_zones_for_label_resolves_via_area(hass):
@@ -175,12 +180,13 @@ async def test_zones_for_label_resolves_via_area(hass):
     assert mgr._zones_for_label("common") == [1032]  # bath zone (unlabeled) excluded
 
 
-async def test_async_load_resolves_label_space(hass):
+async def test_async_load_builds_spaces_from_labels(hass):
     from homeassistant.helpers import area_registry as ar
     from homeassistant.helpers import entity_registry as er
     from homeassistant.helpers import label_registry as lr
 
-    lr.async_get(hass).async_create("Common")
+    lr.async_get(hass).async_create("Common")  # -> label_id "common"
+    lr.async_get(hass).async_create("Empty")  # no zones -> not a space
     areg = ar.async_get(hass)
     kitchen = areg.async_create("Kitchen")
     areg.async_update(kitchen.id, labels={"common"})
@@ -188,14 +194,12 @@ async def test_async_load_resolves_label_space(hass):
     z = ereg.async_get_or_create("media_player", "binary_moip", "e1_1032")
     ereg.async_update_entity(z.entity_id, area_id=kitchen.id)
 
-    coord = _coordinator(
-        _zone(1032),
-        options={"spaces": [{"id": "main", "name": "Main", "label": "common"}]},
-    )
-    mgr = SpaceManager(hass, coord)
+    mgr = SpaceManager(hass, _coordinator(_zone(1032)))
     await mgr.async_load()
-    assert mgr.spaces["main"].label == "common"
-    assert mgr.spaces["main"].zones == [1032]  # resolved from the label
+    # the "common" label (with a zone) becomes a Space; "empty" (no zone) doesn't
+    assert set(mgr.spaces) == {"common"}
+    assert mgr.spaces["common"].name == "Common"
+    assert mgr.spaces["common"].zones == [1032]
 
 
 async def test_describe_spaces_snapshot(hass):

@@ -29,7 +29,6 @@
         "menu_options": {
           "zones": "Zones",
           "sources": "Sources",
-          "spaces": "Listening Spaces",
           "calibration": "Calibration reference"
         }
       },
@@ -40,30 +39,6 @@
       "sources": {
         "title": "Sources",
         "description": "Uncheck a source to hide it from the source list; type a custom name to rename it. Blank keeps the synthesized name."
-      },
-      "spaces": {
-        "title": "Listening Spaces",
-        "description": "Pick a Listening Space to edit, add a new one, or save & finish. Zones not in any space: {unassigned}.",
-        "data": {
-          "space": "Listening Space"
-        }
-      },
-      "space_new": {
-        "title": "Add a Listening Space",
-        "description": "Name the new Listening Space (e.g. Pool & Outdoor).",
-        "data": {
-          "name": "Name"
-        }
-      },
-      "space_edit": {
-        "title": "Edit Listening Space",
-        "description": "Rename {space}. Pick a Label to source membership from your areas (label → areas → zones) — or leave it blank and pick zones explicitly. A label takes over membership; the explicit list is ignored while a label is set. Volume levels are set later in the calibration tool.",
-        "data": {
-          "name": "Name",
-          "label": "Membership label (optional)",
-          "zones": "Zones (used only when no label is set)",
-          "delete": "Delete this space"
-        }
       },
       "calibration": {
         "title": "Calibration reference",

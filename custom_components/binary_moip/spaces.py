@@ -152,48 +152,53 @@ class SpaceManager:
     # --- storage -------------------------------------------------------------
 
     async def async_load(self) -> None:
-        """Load structural config from config-entry options and calibration
-        anchor VALUES from the dedicated Store, merged into Space objects.
+        """Build Listening Spaces from HA **labels**: every label with at least
+        one MoIP zone (label → areas → zones) is a Space. id/name/icon/color come
+        from the label; calibration anchors (keyed by label id) load from the
+        Store. No separate Space objects — labels are the single grouping concept.
         """
+        from homeassistant.helpers import label_registry
+
         options = getattr(self.coordinator.config_entry, "options", {}) or {}
         self.zone_configs = {
             int(gid): cfg for gid, cfg in (options.get(OPT_ZONE_CONFIGS) or {}).items()
         }
         store = await self._store.async_load() or {}
-        anchors = store.get("anchors", {})  # {space_id: {level: {gid_str: value}}}
+        anchors = store.get("anchors", {})  # {label_id: {level: {gid_str: value}}}
 
+        # One-time migration: old explicit Spaces (OPT_SPACES) re-key their
+        # anchors to the label id they were sourced from.
+        if self._migrate_anchors(options.get(OPT_SPACES) or [], anchors):
+            await self._store.async_save({"anchors": anchors})
+
+        lreg = label_registry.async_get(self.hass)
         self.spaces = {}
-        for struct in options.get(OPT_SPACES) or []:
-            space = Space.from_dict(struct)  # name/positions/source (no anchors here)
-            sa = anchors.get(space.id, {})
+        for lbl in lreg.async_list_labels():
+            zones = self._zones_for_label(lbl.label_id)
+            if not zones:
+                continue  # a label with no MoIP zone is not a Space
+            space = Space(id=lbl.label_id, name=lbl.name, label=lbl.label_id, zones=zones)
+            sa = anchors.get(lbl.label_id, {})
             space.levels = {
                 lvl: {int(g): float(v) for g, v in (sa.get(lvl) or {}).items()}
                 for lvl in LEVELS
             }
-            # Resolve effective membership: from the label (if set) else the
-            # explicit list, then apply add/exclude overrides.
-            explicit = list(space.zones)
-            space.zones = self._resolve_membership(
-                space.label, explicit, space.zones_add, space.zones_exclude
-            )
-            self.spaces[space.id] = space
+            self.spaces[lbl.label_id] = space
         self._drivers.clear()
 
-    def _resolve_membership(
-        self,
-        label: str | None,
-        explicit: list[int],
-        add: list[int],
-        exclude: list[int],
-    ) -> list[int]:
-        """Effective member zones: label->areas->zones (or explicit), +add -exclude."""
-        base = self._zones_for_label(label) if label else list(explicit)
-        excl = set(exclude or [])
-        eff = [g for g in base if g not in excl]
-        for g in add or []:
-            if g not in eff and g not in excl:
-                eff.append(g)
-        return eff
+    @staticmethod
+    def _migrate_anchors(old_spaces: list[dict], anchors: dict) -> bool:
+        """Move anchors from a legacy explicit-Space id to its label id (once)."""
+        changed = False
+        for s in old_spaces:
+            old_id, label = s.get("id"), s.get("label")
+            if label and old_id and old_id != label and old_id in anchors:
+                dst = anchors.setdefault(label, {})
+                for lvl, zmap in anchors[old_id].items():
+                    dst.setdefault(lvl, {}).update(zmap)
+                del anchors[old_id]
+                changed = True
+        return changed
 
     def _zones_for_label(self, label_id: str) -> list[int]:
         """MoIP zones (group ids) whose HA area carries ``label_id``.
