@@ -290,13 +290,15 @@ class SpaceManager:
         with entity_id, name, per-level anchors, calibrated flag, current live
         native volume, and native bounds.
         """
-        from homeassistant.helpers import entity_registry
+        from homeassistant.helpers import entity_registry, label_registry
 
         ereg = entity_registry.async_get(self.hass)
+        lreg = label_registry.async_get(self.hass)
         entry_id = self.coordinator.config_entry.entry_id
         out: list[dict] = []
         for sid, space in self.spaces.items():
             rs = self.active.get(sid)
+            lbl = lreg.async_get_label(space.label) if space.label else None
             zones = []
             for gid in space.zones:
                 eid = ereg.async_get_entity_id("media_player", DOMAIN, f"{entry_id}_{gid}")
@@ -320,6 +322,8 @@ class SpaceManager:
                     "id": sid,
                     "name": space.name,
                     "label": space.label,
+                    "icon": lbl.icon if lbl else None,
+                    "color": lbl.color if lbl else None,
                     "master_positions": space.master_positions,
                     "active": rs is not None,
                     "master": rs.master if rs else None,
