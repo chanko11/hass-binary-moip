@@ -224,14 +224,19 @@ async def test_describe_spaces_snapshot(hass):
     assert z0["current_native"] == 40.0 and z0["bounds"] == [0.0, 100.0]
 
 
-async def test_uncalibrated_zone_gets_safe_default_not_full(hass):
+async def test_uncalibrated_zone_tracks_master(hass):
     z1 = _zone(11)  # range 0..100
     coord = _coordinator(z1)
     mgr = SpaceManager(hass, coord)
     mgr.spaces["s1"] = Space(id="s1", name="S1", zones=[11], levels={})  # no anchors
+    # listening (position 50) -> 50% of the native range, not a fixed default
     await mgr.async_activate("s1", level="listening", source=7)
-    # safe default = 0.3 * (100-0) = 30, never blasted to full
-    coord.client.async_set_volume_native.assert_any_await(z1, 30.0)
+    coord.client.async_set_volume_native.assert_any_await(z1, 50.0)
+    # the master slider still moves an uncalibrated zone (the reported bug)
+    await mgr.async_set_master("s1", 85)
+    coord.client.async_set_volume_native.assert_any_await(z1, 85.0)
+    await mgr.async_set_master("s1", 20)
+    coord.client.async_set_volume_native.assert_any_await(z1, 20.0)
 
 
 async def test_zone_set_off_then_on(hass):

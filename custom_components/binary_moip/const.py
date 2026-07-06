@@ -132,7 +132,3 @@ ZONE_ON: Final = "on"
 ZONE_OFF: Final = "off"
 ZONE_NUDGE: Final = "nudge"
 ZONE_ACTIONS: Final = (ZONE_ON, ZONE_OFF, ZONE_NUDGE)
-
-# Uncalibrated zone (no anchor) safe default = this fraction of native range.
-# "Hold a safe default; never blast to full" (spec §4/§5).
-SAFE_DEFAULT_FRACTION: Final = 0.3

@@ -36,7 +36,6 @@ from .const import (
     REF_AUTO,
     REF_PINK,
     ROUTING_MOIP,
-    SAFE_DEFAULT_FRACTION,
     SPACES_STORAGE_KEY,
     SPACES_STORAGE_VERSION,
     ZONE_NUDGE,
@@ -130,6 +129,15 @@ class RuntimeState:
 
 def clamp_master(value: float) -> float:
     return max(MASTER_MIN, min(MASTER_MAX, float(value)))
+
+
+def _uncalibrated_target(master: float, lo: float, hi: float) -> float:
+    """Native volume for a zone with no anchors: linearly map the master position
+    (0-100) across the zone's native range. Keeps the master slider/presets
+    responsive before calibration; ``hi`` already respects the zone's max_volume.
+    """
+    frac = (clamp_master(master) - MASTER_MIN) / (MASTER_MAX - MASTER_MIN)
+    return lo + frac * (hi - lo)
 
 
 class SpaceManager:
@@ -378,7 +386,7 @@ class SpaceManager:
                 master, anchor_points(space.master_positions, space.zone_levels(gid)), lo, hi
             )
             if target is None and lo is not None and hi is not None:
-                target = lo + SAFE_DEFAULT_FRACTION * (hi - lo)  # safe default
+                target = _uncalibrated_target(master, lo, hi)  # slider still works
             if target is not None:
                 await driver.set_level(target)
 
@@ -604,7 +612,7 @@ class SpaceManager:
                 master, anchor_points(space.master_positions, space.zone_levels(zone)), lo, hi
             )
             if target is None and lo is not None and hi is not None:
-                target = lo + SAFE_DEFAULT_FRACTION * (hi - lo)
+                target = _uncalibrated_target(master, lo, hi)
             if target is not None:
                 await driver.set_level(target)
         elif action == ZONE_OFF:
