@@ -38,6 +38,7 @@ from .const import (
     ROUTING_MOIP,
     SPACES_STORAGE_KEY,
     SPACES_STORAGE_VERSION,
+    STATE_UNCONNECTED,
     ZONE_NUDGE,
     ZONE_OFF,
     ZONE_ON,
@@ -328,8 +329,10 @@ class SpaceManager:
                         "calibrated": any(v is not None for v in anchors.values()),
                         "current_native": driver.current_native(),
                         "bounds": [lo, hi],
+                        "online": self._zone_online(gid),
                     }
                 )
+            offline = sum(1 for z in zones if not z["online"])
             out.append(
                 {
                     "id": sid,
@@ -343,9 +346,22 @@ class SpaceManager:
                     "level": rs.level if rs else None,
                     "source": rs.source if rs else None,
                     "zones": zones,
+                    "offline_zones": offline,
+                    "zones_total": len(zones),
                 }
             )
         return out
+
+    def _zone_online(self, gid: int) -> bool:
+        """Whether a zone's amp is reachable: the zone must be discovered and
+        neither it nor its parent unit reporting ``unconnected`` (spec: an offline
+        amp still accepts routes, so the UI must show it explicitly).
+        """
+        zone = self.coordinator.data.zones.get(gid)
+        if zone is None or zone.state == STATE_UNCONNECTED:
+            return False
+        unit = self.coordinator.data.units.get(zone.unit_id) if zone.unit_id else None
+        return unit is None or unit.state != STATE_UNCONNECTED
 
     def _resolve_source_tx(self, source: str | int | None) -> int | None:
         """Resolve a source to a group_tx id. Accepts a tx id (int), a source

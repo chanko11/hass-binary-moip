@@ -222,6 +222,25 @@ async def test_describe_spaces_snapshot(hass):
     assert z0["name"] == "Kitchen"
     assert z0["anchors"]["background"] == 30.0 and z0["calibrated"] is True
     assert z0["current_native"] == 40.0 and z0["bounds"] == [0.0, 100.0]
+    assert z0["online"] is True and s["offline_zones"] == 0 and s["zones_total"] == 1
+
+
+async def test_zone_online_reflects_amp_and_zone_state(hass):
+    from custom_components.binary_moip.api import MoIPUnit
+
+    z_on = MoIPZone(group_id=11, name="On", unit_id=1, volume_range=(0.0, 100.0))
+    z_zoff = MoIPZone(group_id=12, name="ZOff", unit_id=1, state="unconnected")
+    z_uoff = MoIPZone(group_id=13, name="UOff", unit_id=2)  # amp offline
+    coord = _coordinator(z_on, z_zoff, z_uoff)
+    coord.data.units = {
+        1: MoIPUnit(unit_id=1, name="AmpA", state="operating"),
+        2: MoIPUnit(unit_id=2, name="AmpB", state="unconnected"),
+    }
+    mgr = SpaceManager(hass, coord)
+    assert mgr._zone_online(11) is True
+    assert mgr._zone_online(12) is False  # zone itself reports unconnected
+    assert mgr._zone_online(13) is False  # parent amp is unconnected
+    assert mgr._zone_online(99) is False  # not discovered at all
 
 
 async def test_uncalibrated_zone_tracks_master(hass):
