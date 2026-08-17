@@ -27,6 +27,31 @@ _WS_BACKOFF_MAX = 60.0
 type BinaryMoIPConfigEntry = ConfigEntry[BinaryMoIPDataUpdateCoordinator]
 
 
+def _carry_forward(new: MoIPTopology, prev: MoIPTopology) -> None:
+    """Backfill transient-failure gaps in ``new`` with last-known values.
+
+    A zone/source/unit the controller failed to return this poll is absent from
+    ``new`` (api._gather skips failures); and a zone whose backing ``audio_rx``
+    failed is present but has ``volume is None``. Rather than let those show as
+    gone / volume-0, keep the previous poll's value until a poll succeeds again.
+    """
+    for gid, pz in prev.zones.items():
+        nz = new.zones.get(gid)
+        if nz is None:
+            new.zones[gid] = pz  # group_rx skipped this poll -> keep last-known
+        elif nz.volume is None and pz.volume is not None:
+            # backing audio_rx skipped -> keep last-known volume/bounds/mute
+            nz.volume = pz.volume
+            nz.max_volume = pz.max_volume
+            nz.volume_range = pz.volume_range
+            nz.muted = pz.muted
+            nz.mute_ports = pz.mute_ports
+    for sid, ps in prev.sources.items():
+        new.sources.setdefault(sid, ps)
+    for uid, pu in prev.units.items():
+        new.units.setdefault(uid, pu)
+
+
 class BinaryMoIPDataUpdateCoordinator(DataUpdateCoordinator[MoIPTopology]):
     """Coordinate MoIP state via a change-event websocket, with polling fallback.
 
@@ -61,12 +86,18 @@ class BinaryMoIPDataUpdateCoordinator(DataUpdateCoordinator[MoIPTopology]):
     async def _async_update_data(self) -> MoIPTopology:
         """Fetch the current topology and zone/source state from the controller."""
         try:
-            return await self.client.async_discover()
+            topology = await self.client.async_discover()
         except BinaryMoIPAuthError as err:
             # Trigger reauth flow via ConfigEntryAuthFailed in a later stage.
             raise UpdateFailed(f"Authentication error: {err}") from err
         except BinaryMoIPError as err:
             raise UpdateFailed(f"Error communicating with MoIP controller: {err}") from err
+        # Discovery skips objects the controller transiently 5xx's (see api._gather).
+        # Carry forward the previous poll's values for those gaps so a blip doesn't
+        # blank a zone's volume (slider jumps to 0) or make it briefly vanish.
+        if self.data is not None:
+            _carry_forward(topology, self.data)
+        return topology
 
     def start_websocket(self) -> None:
         """Start the background websocket listener, tied to the entry lifecycle."""

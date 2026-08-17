@@ -17,7 +17,9 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 from custom_components.binary_moip.api import (
     BinaryMoIPAuthError,
     BinaryMoIPError,
+    MoIPSource,
     MoIPTopology,
+    MoIPUnit,
     MoIPZone,
 )
 from custom_components.binary_moip.const import DOMAIN
@@ -59,6 +61,41 @@ async def test_update_data_generic_error_becomes_update_failed(hass):
 
     with pytest.raises(UpdateFailed):
         await coord._async_update_data()
+
+
+def test_carry_forward_fills_transient_gaps():
+    prev = MoIPTopology(
+        units={1: MoIPUnit(unit_id=1, name="Amp", state="operating")},
+        zones={
+            11: MoIPZone(group_id=11, name="Kitchen", volume=37.0,
+                         volume_range=(0.0, 100.0), muted=False),
+            12: MoIPZone(group_id=12, name="Den", volume=50.0),
+        },
+        sources={21: MoIPSource(group_id=21, name="Src")},
+    )
+    # This poll: zone 11 present but its audio_rx was skipped (volume None);
+    # zone 12, the unit, and the source all skipped entirely.
+    new = MoIPTopology(zones={11: MoIPZone(group_id=11, name="Kitchen", volume=None)})
+    coord_mod._carry_forward(new, prev)
+    assert new.zones[11].volume == 37.0  # backfilled, not blanked to 0
+    assert new.zones[11].volume_range == (0.0, 100.0)
+    assert new.zones[12].volume == 50.0  # whole zone carried
+    assert new.units[1].state == "operating"
+    assert 21 in new.sources
+
+
+async def test_update_data_carries_forward_previous(hass):
+    prev = MoIPTopology(
+        zones={11: MoIPZone(group_id=11, name="Kitchen", volume=37.0,
+                            volume_range=(0.0, 100.0))}
+    )
+    new = MoIPTopology(zones={11: MoIPZone(group_id=11, name="Kitchen", volume=None)})
+    client = MagicMock()
+    client.async_discover = AsyncMock(return_value=new)
+    coord, _ = _make_coordinator(hass, client)
+    coord.data = prev  # a prior successful poll
+    result = await coord._async_update_data()
+    assert result.zones[11].volume == 37.0
 
 
 # --- _ws_consume ------------------------------------------------------------
