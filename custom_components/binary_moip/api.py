@@ -284,16 +284,23 @@ class BinaryMoIPClient:
         """
         topology = MoIPTopology()
 
+        # Discovery is resilient to *partial* failures: the controller returns
+        # intermittent 5xx for individual objects while amps are reconnecting
+        # (e.g. after a network change). A single bad object must NOT abort the
+        # whole topology (which would drop every zone + take the integration
+        # down). Failed objects are skipped and picked up on a later poll; only
+        # a failed unit-list (below) — meaning we can't reach the controller at
+        # all — is fatal. See ``_gather`` (return_exceptions + warn + skip).
+
         # 1) Units, fetched concurrently.
         id_list = await self._request("GET", _UNIT_LIST)
         unit_ids = [int(i) for i in (id_list or {}).get("items", [])]
-        unit_objs = await asyncio.gather(
-            *(self._request("GET", _UNIT.format(id=uid)) for uid in unit_ids)
-        )
+        unit_objs = await self._gather("unit", unit_ids,
+                                       [_UNIT.format(id=uid) for uid in unit_ids])
 
         group_rx_ids: list[int] = []
         group_tx_ids: list[int] = []
-        for raw in unit_objs:
+        for raw in unit_objs.values():
             unit = _parse_unit(raw)
             topology.units[unit.unit_id] = unit
             assoc = (raw.get("associations") or {}).get("group") or {}
@@ -301,41 +308,51 @@ class BinaryMoIPClient:
             group_tx_ids += [int(i) for i in assoc.get("tx", [])]
 
         # 2) Zones (group_rx) and sources (group_tx), concurrently.
-        rx_objs, tx_objs = await asyncio.gather(
-            asyncio.gather(*(self._request("GET", _GROUP_RX.format(id=i)) for i in group_rx_ids)),
-            asyncio.gather(*(self._request("GET", _GROUP_TX.format(id=i)) for i in group_tx_ids)),
-        )
+        rx_objs = await self._gather("group_rx", group_rx_ids,
+                                     [_GROUP_RX.format(id=i) for i in group_rx_ids])
+        tx_objs = await self._gather("group_tx", group_tx_ids,
+                                     [_GROUP_TX.format(id=i) for i in group_tx_ids])
 
-        zones = [_parse_zone(raw, topology.units) for raw in rx_objs]
-        sources = [_parse_source(raw, topology.units) for raw in tx_objs]
+        zones = [_parse_zone(raw, topology.units) for raw in rx_objs.values()]
+        sources = [_parse_source(raw, topology.units) for raw in tx_objs.values()]
 
         # 3) Backing audio_rx (zone volume/mute/state) and audio_tx (source
-        #    hw label + input type), concurrently.
-        audio_rx_objs = await asyncio.gather(
-            *(
-                self._request("GET", _AUDIO_RX.format(id=z.audio_rx_id))
-                if z.audio_rx_id is not None
-                else _none()
-                for z in zones
-            )
-        )
-        audio_tx_objs = await asyncio.gather(
-            *(
-                self._request("GET", _AUDIO_TX.format(id=s.audio_tx_id))
-                if s.audio_tx_id is not None
-                else _none()
-                for s in sources
-            )
-        )
+        #    hw label + input type). A missing backing just leaves the zone
+        #    without live volume/EQ — the zone itself still exists.
+        arx_ids = [z.audio_rx_id for z in zones if z.audio_rx_id is not None]
+        atx_ids = [s.audio_tx_id for s in sources if s.audio_tx_id is not None]
+        audio_rx = await self._gather("audio_rx", arx_ids,
+                                      [_AUDIO_RX.format(id=i) for i in arx_ids])
+        audio_tx = await self._gather("audio_tx", atx_ids,
+                                      [_AUDIO_TX.format(id=i) for i in atx_ids])
 
-        for zone, arx in zip(zones, audio_rx_objs):
-            _apply_audio_rx(zone, arx)
+        for zone in zones:
+            _apply_audio_rx(zone, audio_rx.get(zone.audio_rx_id))
             topology.zones[zone.group_id] = zone
-        for source, atx in zip(sources, audio_tx_objs):
-            _apply_audio_tx(source, atx)
+        for source in sources:
+            _apply_audio_tx(source, audio_tx.get(source.audio_tx_id))
             topology.sources[source.group_id] = source
 
         return topology
+
+    async def _gather(
+        self, kind: str, ids: list[int], paths: list[str]
+    ) -> dict[int, dict[str, Any]]:
+        """GET ``paths`` concurrently, tolerating individual failures.
+
+        Returns ``{id: response}`` for the ones that succeeded; a failed GET is
+        logged and omitted (the object is skipped this poll, not fatal).
+        """
+        results = await asyncio.gather(
+            *(self._request("GET", p) for p in paths), return_exceptions=True
+        )
+        out: dict[int, dict[str, Any]] = {}
+        for oid, res in zip(ids, results):
+            if isinstance(res, Exception):
+                _LOGGER.warning("Skipping %s %s this poll: %s", kind, oid, res)
+            else:
+                out[oid] = res
+        return out
 
     async def async_get_units(self) -> list[MoIPUnit]:
         """List physical units (GET /moip/unit)."""
@@ -412,11 +429,6 @@ class BinaryMoIPClient:
             ssl=self._ssl,
             heartbeat=30,
         )
-
-
-async def _none() -> None:
-    """Awaitable that yields None (placeholder in gather for missing ids)."""
-    return None
 
 
 def _parse_unit(raw: dict[str, Any]) -> MoIPUnit:
