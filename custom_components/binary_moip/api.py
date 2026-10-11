@@ -51,6 +51,20 @@ _TOKEN_REFRESH_MARGIN = 30.0
 # Per-request timeout (seconds).
 _REQUEST_TIMEOUT = 15.0
 
+# Transient-failure retries for idempotent reads (GET only).
+#
+# The controller can return a burst of HTTP 500s on the per-object endpoints while
+# it re-enumerates its object table — observed 2026-10-11: 49 consecutive 500s on
+# group_rx/group_tx/audio_rx/audio_tx inside a single minute, shortly after a unit
+# rejoined the topology, with nothing before or after. Verified not to be load or
+# concurrency: the same 76 objects return 200 at concurrency 1, 4, 10 and 21.
+#
+# Without a retry, one such minute makes every affected zone and source go
+# unavailable for that poll, which presents to the user as the whole audio system
+# dropping offline while the amplifiers are in fact perfectly healthy.
+_GET_RETRY_ATTEMPTS = 3
+_GET_RETRY_BACKOFF = 0.4
+
 
 def aiohttp_timeout() -> ClientTimeout:
     """Return the standard per-request timeout."""
@@ -58,7 +72,15 @@ def aiohttp_timeout() -> ClientTimeout:
 
 
 class BinaryMoIPError(Exception):
-    """Base error for all Binary MoIP client failures."""
+    """Base error for all Binary MoIP client failures.
+
+    ``status`` carries the HTTP status when the failure came from a response, so
+    callers can tell a retryable 5xx from a permanent 4xx.
+    """
+
+    def __init__(self, message: str = "", *, status: int | None = None) -> None:
+        super().__init__(message)
+        self.status = status
 
 
 class BinaryMoIPConnectionError(BinaryMoIPError):
@@ -67,6 +89,21 @@ class BinaryMoIPConnectionError(BinaryMoIPError):
 
 class BinaryMoIPAuthError(BinaryMoIPError):
     """Raised when authentication fails or the token cannot be refreshed."""
+
+
+def _is_retryable(err: Exception) -> bool:
+    """True for failures worth re-attempting on an idempotent read.
+
+    Auth failures are never retried here (``_request_once`` already re-logs in
+    once); connection errors and 5xx responses are, since both are transient on
+    this controller.
+    """
+    if isinstance(err, BinaryMoIPAuthError):
+        return False
+    if isinstance(err, BinaryMoIPConnectionError):
+        return True
+    status = getattr(err, "status", None)
+    return status is not None and 500 <= status < 600
 
 
 @dataclass
@@ -228,7 +265,44 @@ class BinaryMoIPClient:
         *,
         json: dict[str, Any] | None = None,
     ) -> Any:
-        """Perform an authenticated request, re-authenticating once on 401.
+        """Perform an authenticated request, retrying transient read failures.
+
+        Idempotent reads (GET) are retried on 5xx and connection errors with a
+        short exponential backoff. Anything else is attempted exactly once, so a
+        write is never silently replayed.
+        """
+        attempts = _GET_RETRY_ATTEMPTS if method.upper() == "GET" else 1
+        backoff = _GET_RETRY_BACKOFF
+
+        for attempt in range(1, attempts + 1):
+            try:
+                return await self._request_once(method, path, json=json)
+            except BinaryMoIPError as err:
+                if attempt == attempts or not _is_retryable(err):
+                    raise
+                _LOGGER.debug(
+                    "%s %s failed (%s); retrying in %.1fs (attempt %d/%d)",
+                    method,
+                    path,
+                    err,
+                    backoff,
+                    attempt,
+                    attempts,
+                )
+                await asyncio.sleep(backoff)
+                backoff *= 2
+
+        # Unreachable: the loop always returns or raises.
+        raise BinaryMoIPError(f"{method} {path} failed")
+
+    async def _request_once(
+        self,
+        method: str,
+        path: str,
+        *,
+        json: dict[str, Any] | None = None,
+    ) -> Any:
+        """Single authenticated attempt, re-authenticating once on 401.
 
         Returns parsed JSON, or ``None`` for empty/204 responses.
         """
@@ -261,7 +335,8 @@ class BinaryMoIPClient:
                 raise
             except ClientResponseError as err:
                 raise BinaryMoIPError(
-                    f"{method} {path} failed: HTTP {err.status} {err.message}"
+                    f"{method} {path} failed: HTTP {err.status} {err.message}",
+                    status=err.status,
                 ) from err
             except (ClientError, asyncio.TimeoutError) as err:
                 raise BinaryMoIPConnectionError(
@@ -342,6 +417,10 @@ class BinaryMoIPClient:
 
         Returns ``{id: response}`` for the ones that succeeded; a failed GET is
         logged and omitted (the object is skipped this poll, not fatal).
+
+        Transient 5xx and connection failures are already retried inside
+        :meth:`_request`, so reaching the warning below means the object stayed
+        unreadable across every attempt.
         """
         results = await asyncio.gather(
             *(self._request("GET", p) for p in paths), return_exceptions=True

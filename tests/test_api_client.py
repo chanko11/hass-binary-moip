@@ -154,6 +154,87 @@ async def test_request_http_error_wrapped_as_binary_moip_error(make_client):
     assert not isinstance(exc.value, (api.BinaryMoIPConnectionError, api.BinaryMoIPAuthError))
 
 
+async def test_request_retries_5xx_on_get_then_succeeds(make_client, monkeypatch):
+    """A transient controller 500 on a read is retried, not surfaced.
+
+    The controller emits bursts of HTTP 500s on object endpoints while it
+    re-enumerates its object table; without this retry every affected zone goes
+    unavailable in HA for that poll.
+    """
+    monkeypatch.setattr(api, "_GET_RETRY_BACKOFF", 0.0)
+    from conftest import FakeSession
+
+    state = {"n": 0}
+
+    def handler(**kw):
+        state["n"] += 1
+        if state["n"] == 1:
+            return FakeResponse(status=500)
+        return FakeResponse(json_data={"ok": True})
+
+    session = FakeSession(post_handler=_auth_post(), request_handler=handler)
+    client = make_client(session)
+
+    assert await client._request("GET", "/api/v1/moip/group_rx/1030") == {"ok": True}
+    assert state["n"] == 2  # failed once, retried once, succeeded
+
+
+async def test_request_gives_up_after_retry_budget(make_client, monkeypatch):
+    monkeypatch.setattr(api, "_GET_RETRY_BACKOFF", 0.0)
+    from conftest import FakeSession
+
+    state = {"n": 0}
+
+    def handler(**kw):
+        state["n"] += 1
+        return FakeResponse(status=500)
+
+    session = FakeSession(post_handler=_auth_post(), request_handler=handler)
+    client = make_client(session)
+
+    with pytest.raises(api.BinaryMoIPError):
+        await client._request("GET", "/api/v1/moip/group_rx/1030")
+    assert state["n"] == api._GET_RETRY_ATTEMPTS
+
+
+async def test_request_does_not_retry_writes(make_client, monkeypatch):
+    """Writes are attempted once so a command is never silently replayed."""
+    monkeypatch.setattr(api, "_GET_RETRY_BACKOFF", 0.0)
+    from conftest import FakeSession
+
+    state = {"n": 0}
+
+    def handler(**kw):
+        state["n"] += 1
+        return FakeResponse(status=500)
+
+    session = FakeSession(post_handler=_auth_post(), request_handler=handler)
+    client = make_client(session)
+
+    with pytest.raises(api.BinaryMoIPError):
+        await client._request("PUT", "/api/v1/moip/group_rx/1030", json={"a": 1})
+    assert state["n"] == 1
+
+
+async def test_request_does_not_retry_4xx(make_client, monkeypatch):
+    """A 4xx is permanent — retrying it just delays the inevitable."""
+    monkeypatch.setattr(api, "_GET_RETRY_BACKOFF", 0.0)
+    from conftest import FakeSession
+
+    state = {"n": 0}
+
+    def handler(**kw):
+        state["n"] += 1
+        return FakeResponse(status=404)
+
+    session = FakeSession(post_handler=_auth_post(), request_handler=handler)
+    client = make_client(session)
+
+    with pytest.raises(api.BinaryMoIPError):
+        await client._request("GET", "/api/v1/moip/group_rx/9999")
+    assert state["n"] == 1
+
+
 async def test_request_connection_error_wrapped(make_client):
     from conftest import FakeSession
 
